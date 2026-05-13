@@ -23,3 +23,4 @@ iter 7 | done | P1.2 buildVoxelMesh: per-type InstancedMesh sized by exact non-e
 iter 8 | done | P1.3 buildStarterRoom() builds 32×1×32 floor-fill with WALL perimeter; main.ts renders it centered at origin in place of the rotating cube; build green (458 kB)
 iter 9 | done | P1.4 Player class (0.6³ cube, WASD+arrows, axis-separated AABB collision vs VOXEL_WALL across full footprint) wired into main.ts RAF with capped dt; build green (460 kB)
 iter 10 | done | P1.5 camera follow: each frame copy player pos + CAMERA_OFFSET, lookAt(player); build green (460 kB)
+iter 11 | done | P1.6 BillboardNpc (PlaneGeometry 1×1.5 + canvas-texture MeshBasicMaterial, Y-axis-only lookAt) spawned at cell (16,22); build green (461 kB)

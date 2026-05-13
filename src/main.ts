@@ -3,6 +3,7 @@ import { bootstrapScene, CAMERA_OFFSET } from "./render/scene";
 import { buildStarterRoom, STARTER_ROOM_WIDTH, STARTER_ROOM_DEPTH } from "./world/rooms";
 import { buildVoxelMesh } from "./render/voxelMesh";
 import { Player } from "./entities/player";
+import { BillboardNpc, NPC_Y } from "./entities/npc";
 
 const { scene, camera, renderer } = bootstrapScene("#game");
 
@@ -16,11 +17,24 @@ const player = new Player(room, gridOffset);
 player.attachKeyboard();
 scene.add(player.mesh);
 
+const NPC_CELL_X = 16;
+const NPC_CELL_Z = 22;
+const npc = new BillboardNpc({
+  label: "NPC",
+  position: new THREE.Vector3(
+    gridOffset.x + NPC_CELL_X + 0.5,
+    NPC_Y,
+    gridOffset.z + NPC_CELL_Z + 0.5,
+  ),
+});
+scene.add(npc.mesh);
+
 function updateCamera() {
   camera.position.copy(player.mesh.position).add(CAMERA_OFFSET);
   camera.lookAt(player.mesh.position);
 }
 updateCamera();
+npc.faceCamera(camera);
 
 let last = performance.now();
 function frame(now: number) {
@@ -28,6 +42,7 @@ function frame(now: number) {
   last = now;
   player.update(dt);
   updateCamera();
+  npc.faceCamera(camera);
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
