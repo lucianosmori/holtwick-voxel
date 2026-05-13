@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { bootstrapScene } from "./render/scene";
+import { bootstrapScene, CAMERA_OFFSET } from "./render/scene";
 import { buildStarterRoom, STARTER_ROOM_WIDTH, STARTER_ROOM_DEPTH } from "./world/rooms";
 import { buildVoxelMesh } from "./render/voxelMesh";
 import { Player } from "./entities/player";
@@ -16,13 +16,18 @@ const player = new Player(room, gridOffset);
 player.attachKeyboard();
 scene.add(player.mesh);
 
-camera.lookAt(0, 0, 0);
+function updateCamera() {
+  camera.position.copy(player.mesh.position).add(CAMERA_OFFSET);
+  camera.lookAt(player.mesh.position);
+}
+updateCamera();
 
 let last = performance.now();
 function frame(now: number) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   player.update(dt);
+  updateCamera();
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
