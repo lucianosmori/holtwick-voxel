@@ -19,3 +19,4 @@ iter 3 | done | P0.2 lifted npc.schema.ts + npcs.ts + 31 JSONs verbatim; added t
 iter 4 | done | P0.3 lifted chat/webllm.ts + audio/sfx.ts verbatim from 02-fp; build + data check green; not yet wired into runtime per spec
 iter 5 | done | P0.4 three.js bootstrap: render/scene.ts (Scene + perspective cam @55°pitch + WebGLRenderer + resize) + RAF loop + rotating ref cube; build green (454 kB)
 iter 6 | done | P1.1 VoxelGrid (Uint8Array, get/set/dims, EMPTY/FLOOR/WALL consts); OOB get returns empty for collision safety; build green
+iter 7 | done | P1.2 buildVoxelMesh: per-type InstancedMesh sized by exact non-empty counts, shared BoxGeometry, default palette (floor/wall MeshStandardMaterial); build green
