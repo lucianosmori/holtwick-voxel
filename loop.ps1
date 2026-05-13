@@ -1,0 +1,65 @@
+# Ralph-loop runner (PowerShell). Windows-native alternative to loop.sh.
+# Defaults: bounded iterations, timebox, Telegram pings on start/end/blocked.
+#
+# Usage:
+#   .\loop.ps1                                   # 20 iterations, 60-min timebox
+#   .\loop.ps1 -MaxIter 10 -TimeboxMin 30
+#
+# Requires: claude CLI on PATH. Optional: TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID
+# in env (or $env:USERPROFILE\.claude\channels\telegram\.env) for pings.
+
+param(
+    [int]$MaxIter = 20,
+    [int]$TimeboxMin = 60
+)
+
+$ErrorActionPreference = 'Continue'
+$Experiment = Split-Path -Leaf (Get-Location)
+$Deadline = (Get-Date).AddMinutes($TimeboxMin)
+
+# Load telegram creds from .env if present
+$envFile = Join-Path $env:USERPROFILE '.claude\channels\telegram\.env'
+if (Test-Path $envFile) {
+    Get-Content $envFile | ForEach-Object {
+        if ($_ -match '^\s*([^#=]+)=(.*)$') {
+            Set-Item -Path "env:$($Matches[1].Trim())" -Value $Matches[2].Trim()
+        }
+    }
+}
+$TgChat = $env:TELEGRAM_CHAT_ID
+
+function Send-Ping {
+    param([string]$Msg)
+    if (-not $env:TELEGRAM_BOT_TOKEN -or -not $TgChat) { return }
+    try {
+        Invoke-RestMethod -Method Post -Uri "https://api.telegram.org/bot$($env:TELEGRAM_BOT_TOKEN)/sendMessage" `
+            -Body @{ chat_id = $TgChat; text = "[$Experiment] $Msg" } | Out-Null
+    } catch { }
+}
+
+function Test-Done {
+    if (-not (Test-Path status.json)) { return $false }
+    return (Select-String -Path status.json -Pattern '"status"\s*:\s*"(graduated|abandoned)"' -Quiet)
+}
+
+Send-Ping "loop start - max_iter=$MaxIter, timebox=${TimeboxMin}m"
+
+for ($i = 1; $i -le $MaxIter; $i++) {
+    if ((Get-Date) -ge $Deadline) {
+        Send-Ping "loop stopped - timebox exhausted at iter $i"
+        exit 0
+    }
+    if (Test-Done) {
+        Send-Ping "loop stopped - status.json signals done at iter $i"
+        exit 0
+    }
+
+    Write-Host "=== iter $i/$MaxIter ==="
+    & claude -p "Run one iteration per PROMPT.md. Pick exactly one task from IMPLEMENTATION_PLAN.md (highest priority unfinished), complete it, update files, commit on green."
+    if ($LASTEXITCODE -ne 0) {
+        Send-Ping "iter $i FAILED - see terminal"
+        exit 1
+    }
+}
+
+Send-Ping "loop stopped - max_iter=$MaxIter reached"

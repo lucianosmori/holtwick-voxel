@@ -1,0 +1,16 @@
+# NOTES.md
+
+Running journal for this experiment. One line per iteration. Free-form entries above the iteration log for discoveries, dead-ends, decisions.
+
+## Discoveries & decisions
+
+<!-- Write here when something surprises you or when you change direction. Dated. Kept forever — this is the post-mortem source material. -->
+
+- **2026-05-12 — iter 1 spec lock.** Confirmed `../02-fp-overnight-roguelike/src/` has the 5 lift targets intact: `data/npc.schema.ts`, `data/npcs.ts`, 31 JSONs under `data/npcs/`, `chat/webllm.ts`, `audio/sfx.ts`. Three.js version pinned to `^0.160` (latest stable in `02-fp` ecosystem; r160 is widely covered in WebGL2 examples). PixelLab integration deferred to P2 as a Node tool, not a runtime dep, to keep iter scope honest.
+- **Stack rationale (KISS, official-first):** Three.js is first-party from mrdoob/three; Vite is the official build path for browser TS; PixelLab is the only third-party for sprites and is run offline. No React-three-fiber wrapper — would add learning surface + bundle weight without value at this scale.
+- **Why P1.7 is a hard checkpoint:** Per backlog risk register, the user wants to eyeball the first playable before ralph burns into procedural + chat. GH Pages URL in hand is the signoff trigger.
+
+## Iteration log
+
+<!-- Appended by the loop. Format: `iter N | <done|blocked|skipped> | <one-sentence why>` -->
+iter 1 | done | sharpened PROMPT objective + replaced TBD plan with 4 P0 / 7 P1 / 7 P2 tasks
