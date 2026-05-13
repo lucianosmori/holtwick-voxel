@@ -11,7 +11,7 @@
 
 ## Priority 1 — First playable slice (single-room walkable demo)
 
-- [ ] **P1.1** Voxel grid module `src/world/voxel.ts`: `VoxelGrid` class backed by `Uint8Array`, with `get(x,y,z)`, `set(x,y,z,v)`, `dims`. `0` = empty, `1` = floor, `2` = wall. Pure data, no rendering.
+- [x] ~~**P1.1** Voxel grid module `src/world/voxel.ts`: `VoxelGrid` class backed by `Uint8Array`, with `get(x,y,z)`, `set(x,y,z,v)`, `dims`. `0` = empty, `1` = floor, `2` = wall. Pure data, no rendering.~~ (iter 6 — `VoxelGrid` + `VOXEL_EMPTY/FLOOR/WALL` exports; out-of-bounds `get` returns empty for safe collision queries; `set` throws on OOB; build green)
 - [ ] **P1.2** Voxel renderer `src/render/voxelMesh.ts`: takes a `VoxelGrid`, builds one `InstancedMesh` per voxel type using shared `BoxGeometry(1,1,1)` and palette materials. Returns a `THREE.Group`. Re-buildable on demand; not optimized for streaming yet.
 - [ ] **P1.3** Hand-authored 32×1×32 single-room layout: floor everywhere, walls on the 4 outer edges, in `src/world/rooms.ts` as `buildStarterRoom(): VoxelGrid`. Wire it into `main.ts`, replacing the rotating cube.
 - [ ] **P1.4** Player avatar `src/entities/player.ts`: a single colored `Mesh` (cube for now) with `position`, `velocity`. WASD input from `KeyboardEvent`, axis-aligned movement on XZ at constant speed. Wall collision against the `VoxelGrid` (AABB vs occupied cells). No jumping.
