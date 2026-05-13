@@ -1,17 +1,28 @@
+import * as THREE from "three";
 import { bootstrapScene } from "./render/scene";
 import { buildStarterRoom, STARTER_ROOM_WIDTH, STARTER_ROOM_DEPTH } from "./world/rooms";
 import { buildVoxelMesh } from "./render/voxelMesh";
+import { Player } from "./entities/player";
 
 const { scene, camera, renderer } = bootstrapScene("#game");
 
 const room = buildStarterRoom();
 const roomMesh = buildVoxelMesh(room);
-roomMesh.position.set(-STARTER_ROOM_WIDTH / 2, 0, -STARTER_ROOM_DEPTH / 2);
+const gridOffset = new THREE.Vector3(-STARTER_ROOM_WIDTH / 2, 0, -STARTER_ROOM_DEPTH / 2);
+roomMesh.position.copy(gridOffset);
 scene.add(roomMesh);
+
+const player = new Player(room, gridOffset);
+player.attachKeyboard();
+scene.add(player.mesh);
 
 camera.lookAt(0, 0, 0);
 
-function frame() {
+let last = performance.now();
+function frame(now: number) {
+  const dt = Math.min(0.1, (now - last) / 1000);
+  last = now;
+  player.update(dt);
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
