@@ -14,3 +14,4 @@ Running journal for this experiment. One line per iteration. Free-form entries a
 
 <!-- Appended by the loop. Format: `iter N | <done|blocked|skipped> | <one-sentence why>` -->
 iter 1 | done | sharpened PROMPT objective + replaced TBD plan with 4 P0 / 7 P1 / 7 P2 tasks
+iter 2 | done | P0.1 Vite+TS+three@0.160 scaffold; `npm run build` green (tsc --noEmit + vite build, 296ms)
