@@ -1,20 +1,17 @@
-import * as THREE from "three";
 import { bootstrapScene } from "./render/scene";
+import { buildStarterRoom, STARTER_ROOM_WIDTH, STARTER_ROOM_DEPTH } from "./world/rooms";
+import { buildVoxelMesh } from "./render/voxelMesh";
 
 const { scene, camera, renderer } = bootstrapScene("#game");
 
-const refCube = new THREE.Mesh(
-  new THREE.BoxGeometry(2, 2, 2),
-  new THREE.MeshStandardMaterial({ color: 0x48c0ff }),
-);
-scene.add(refCube);
+const room = buildStarterRoom();
+const roomMesh = buildVoxelMesh(room);
+roomMesh.position.set(-STARTER_ROOM_WIDTH / 2, 0, -STARTER_ROOM_DEPTH / 2);
+scene.add(roomMesh);
 
-let prev = performance.now();
-function frame(now: number) {
-  const dt = (now - prev) / 1000;
-  prev = now;
-  refCube.rotation.y += dt * 0.6;
-  refCube.rotation.x += dt * 0.3;
+camera.lookAt(0, 0, 0);
+
+function frame() {
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
