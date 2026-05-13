@@ -1,0 +1,20 @@
+{
+  "id": "tomb_spider",
+  "name": "Tomb Spider",
+  "role": "vermin",
+  "sprite_key": "purple_circle_outline",
+  "hp": 6,
+  "dmg": 2,
+  "barks_idle": [
+    "*skitters across a sarcophagus lid*",
+    "*spins a thick web between two pillars*",
+    "*eight eyes blink in slow rotation*"
+  ],
+  "barks_combat": [
+    "*lunges with venom-slick fangs*",
+    "*wraps a leg around your ankle*"
+  ],
+  "chat": false,
+  "min_floor": 3,
+  "max_floor": 5
+}

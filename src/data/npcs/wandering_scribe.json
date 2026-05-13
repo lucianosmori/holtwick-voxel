@@ -1,0 +1,20 @@
+{
+  "id": "wandering_scribe",
+  "name": "Wandering Scribe",
+  "role": "scholar",
+  "sprite_key": "tan_square_outline",
+  "hp": 5,
+  "dmg": 1,
+  "barks_idle": [
+    "Ah, a fellow descender. Have you seen the third sigil down here?",
+    "I'm cataloguing the dialects of the lower halls. They differ, you know.",
+    "If you find a green key, it's mine. Probably. I lose them often."
+  ],
+  "barks_combat": [
+    "Please! I have ink, not a sword!",
+    "*flails a heavy ledger like a shield*"
+  ],
+  "chat": true,
+  "min_floor": 3,
+  "max_floor": 5
+}

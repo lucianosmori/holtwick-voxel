@@ -1,0 +1,20 @@
+{
+  "id": "acolyte_of_dust",
+  "name": "Acolyte of Dust",
+  "role": "cultist",
+  "sprite_key": "grey_square_outline",
+  "hp": 6,
+  "dmg": 2,
+  "barks_idle": [
+    "All things settle. All things quiet.",
+    "*draws a slow circle in the grey on the floor*",
+    "The Warden hears. The Warden waits."
+  ],
+  "barks_combat": [
+    "Be still! Be quiet!",
+    "*swings a censer trailing pale ash*"
+  ],
+  "chat": false,
+  "min_floor": 3,
+  "max_floor": 5
+}

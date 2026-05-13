@@ -1,0 +1,29 @@
+{
+  "id": "boss_warden",
+  "name": "The Warden",
+  "role": "boss",
+  "sprite_key": "magenta_square_outline",
+  "hp": 30,
+  "dmg": 6,
+  "barks_idle": [
+    "Ah. Another one. I was beginning to think the stairs had forgotten how to bring me company.",
+    "Do not bother with your name. The depths file you under 'visitor' regardless.",
+    "I have been the Warden of this floor since before the upper city had walls. The math is unflattering.",
+    "Once, I was sent down here to keep something locked away. The thing is gone. The post remains.",
+    "Every adventurer asks the same first question: 'what guards the bottom?' The honest answer is 'habit'.",
+    "You carry less than the last one. They had a lute. I think of that lute often.",
+    "If you turn around now, I will pretend I did not see you. That offer expires when you step closer.",
+    "Very well. Lift whatever you brought. I have not been properly tested in three centuries.",
+    "*chains rattle into a shape that suggests, regrettably, a stance*"
+  ],
+  "barks_combat": [
+    "You should not have come.",
+    "The depths claim all.",
+    "*the chains move on their own; they have done this before*",
+    "I take no pleasure in this. I take nothing in this. That is the trouble."
+  ],
+  "chat": true,
+  "boss": true,
+  "min_floor": 10,
+  "max_floor": 10
+}

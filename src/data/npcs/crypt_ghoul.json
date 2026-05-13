@@ -1,0 +1,20 @@
+{
+  "id": "crypt_ghoul",
+  "name": "Crypt Ghoul",
+  "role": "undead",
+  "sprite_key": "grey_circle_outline",
+  "hp": 7,
+  "dmg": 3,
+  "barks_idle": [
+    "*gnaws on something that used to be an arm*",
+    "*sniffs the air, head cocked at a wrong angle*",
+    "*paces a tight circle, muttering names*"
+  ],
+  "barks_combat": [
+    "Fresh! Fresh meat!",
+    "*leaps with a yellowed, hungry grin*"
+  ],
+  "chat": false,
+  "min_floor": 3,
+  "max_floor": 5
+}

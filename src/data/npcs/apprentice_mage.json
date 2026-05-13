@@ -1,0 +1,20 @@
+{
+  "id": "apprentice_mage",
+  "name": "Apprentice Mage",
+  "role": "caster",
+  "sprite_key": "blue_circle_outline",
+  "hp": 5,
+  "dmg": 3,
+  "barks_idle": [
+    "I-I'm just practicing! Don't startle me!",
+    "*mutters a half-remembered cantrip*",
+    "Master said the third sigil never fails. The third one."
+  ],
+  "barks_combat": [
+    "Frostbolt! Frostbolt, please work!",
+    "*hurls a sputtering arc of light*"
+  ],
+  "chat": false,
+  "min_floor": 3,
+  "max_floor": 5
+}

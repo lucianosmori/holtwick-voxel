@@ -1,0 +1,22 @@
+{
+  "id": "abyssal_lich",
+  "name": "Abyssal Lich",
+  "role": "archmage",
+  "sprite_key": "indigo_circle_outline",
+  "hp": 14,
+  "dmg": 5,
+  "barks_idle": [
+    "*fingerbones tap a counting rhythm against a brittle staff*",
+    "I unlearned my own name to make room for the spell. Was that a fair trade?",
+    "The Warden tolerates me only because death already did its work here.",
+    "Step a little closer. The cold prefers company."
+  ],
+  "barks_combat": [
+    "Be unmade — properly, this time.",
+    "*whispers a word the air refuses to repeat*",
+    "Your warmth is an insult."
+  ],
+  "chat": false,
+  "min_floor": 9,
+  "max_floor": 9
+}

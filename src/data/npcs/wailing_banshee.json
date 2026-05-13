@@ -1,0 +1,20 @@
+{
+  "id": "wailing_banshee",
+  "name": "Wailing Banshee",
+  "role": "spirit",
+  "sprite_key": "white_diamond_outline",
+  "hp": 8,
+  "dmg": 5,
+  "barks_idle": [
+    "*a thin keening hovers just under your hearing*",
+    "*her mouth shapes a name you almost recognize*",
+    "Stay. Listen. You are the next verse."
+  ],
+  "barks_combat": [
+    "Hear my grief!",
+    "*the scream lands like a fist*"
+  ],
+  "chat": false,
+  "min_floor": 6,
+  "max_floor": 8
+}

@@ -1,0 +1,20 @@
+{
+  "id": "giant_spider",
+  "name": "Giant Spider",
+  "role": "arachnid",
+  "sprite_key": "purple_circle_outline",
+  "hp": 3,
+  "dmg": 2,
+  "barks_idle": [
+    "*spins a thread of grey silk*",
+    "*taps eight legs in unison*",
+    "*regards you with too many eyes*"
+  ],
+  "barks_combat": [
+    "*sinks venomed fangs into your calf*",
+    "*flings a web at your eyes*"
+  ],
+  "chat": false,
+  "min_floor": 1,
+  "max_floor": 2
+}

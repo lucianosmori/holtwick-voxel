@@ -1,0 +1,20 @@
+{
+  "id": "fungal_zombie",
+  "name": "Fungal Zombie",
+  "role": "undead",
+  "sprite_key": "green_square_outline",
+  "hp": 8,
+  "dmg": 2,
+  "barks_idle": [
+    "*spores drift from a cracked ribcage*",
+    "*shuffles in a slow, lopsided arc*",
+    "*moans through a mushroom-clogged jaw*"
+  ],
+  "barks_combat": [
+    "*claws with mycelium-knit fingers*",
+    "*belches a cloud of choking spores*"
+  ],
+  "chat": false,
+  "min_floor": 3,
+  "max_floor": 5
+}

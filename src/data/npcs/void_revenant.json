@@ -1,0 +1,22 @@
+{
+  "id": "void_revenant",
+  "name": "Void Revenant",
+  "role": "revenant",
+  "sprite_key": "shadow_diamond_outline",
+  "hp": 16,
+  "dmg": 5,
+  "barks_idle": [
+    "*its outline does not quite agree on where it ends*",
+    "*a hollow draught flows out where its mouth should be*",
+    "*it raises an arm that arrives a moment later than expected*",
+    "*for an instant it remembers being someone, and then it doesn't*"
+  ],
+  "barks_combat": [
+    "*it does not roar — the room roars on its behalf*",
+    "*it reaches through your stance as if the stance were optional*",
+    "*the dark behind it leans forward to help*"
+  ],
+  "chat": false,
+  "min_floor": 9,
+  "max_floor": 9
+}

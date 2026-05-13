@@ -1,0 +1,20 @@
+{
+  "id": "shadow_priest",
+  "name": "Shadow Priest",
+  "role": "heretic",
+  "sprite_key": "purple_circle_outline",
+  "hp": 8,
+  "dmg": 3,
+  "barks_idle": [
+    "Have you come to be unmade, or to bargain?",
+    "I read the old liturgy backwards now. It listens better that way.",
+    "Three more souls and the seal beneath us cracks. Will you donate?"
+  ],
+  "barks_combat": [
+    "Drink, dark mother!",
+    "*draws a sigil that bites the air*"
+  ],
+  "chat": true,
+  "min_floor": 6,
+  "max_floor": 8
+}

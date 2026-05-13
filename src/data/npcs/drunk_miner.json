@@ -1,0 +1,20 @@
+{
+  "id": "drunk_miner",
+  "name": "Drunk Miner",
+  "role": "outcast",
+  "sprite_key": "orange_square_outline",
+  "hp": 4,
+  "dmg": 1,
+  "barks_idle": [
+    "I struck a vein once. Real silver. Or close to it.",
+    "Got any ale? I'll trade you a song for ale.",
+    "Don't go deeper, friend. Down there it forgets your name."
+  ],
+  "barks_combat": [
+    "Bah! Off my claim, scab!",
+    "*swings a pickaxe in a wide, drunken arc*"
+  ],
+  "chat": true,
+  "min_floor": 1,
+  "max_floor": 2
+}

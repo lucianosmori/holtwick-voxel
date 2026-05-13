@@ -1,0 +1,20 @@
+{
+  "id": "green_slime",
+  "name": "Green Slime",
+  "role": "ooze",
+  "sprite_key": "green_blob_outline",
+  "hp": 4,
+  "dmg": 1,
+  "barks_idle": [
+    "*quivers in a damp puddle*",
+    "*absorbs a stray bone*",
+    "*splits, reconsiders, reforms*"
+  ],
+  "barks_combat": [
+    "*lashes a sticky pseudopod*",
+    "*hisses as it engulfs your boot*"
+  ],
+  "chat": false,
+  "min_floor": 1,
+  "max_floor": 2
+}

@@ -1,0 +1,20 @@
+{
+  "id": "blood_cultist",
+  "name": "Blood Cultist",
+  "role": "cultist",
+  "sprite_key": "crimson_circle_outline",
+  "hp": 8,
+  "dmg": 4,
+  "barks_idle": [
+    "*paints a fresh sigil with a thumb still wet from the last one*",
+    "*chants on the off-beat, as if mocking a hymn*",
+    "Your blood is loud. The altar will hear it."
+  ],
+  "barks_combat": [
+    "For the Red Mother!",
+    "*opens its own palm to feed the curved knife*"
+  ],
+  "chat": false,
+  "min_floor": 6,
+  "max_floor": 8
+}

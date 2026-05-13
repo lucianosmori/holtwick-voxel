@@ -1,0 +1,20 @@
+{
+  "id": "bone_archer",
+  "name": "Bone Archer",
+  "role": "undead",
+  "sprite_key": "ivory_triangle_outline",
+  "hp": 6,
+  "dmg": 3,
+  "barks_idle": [
+    "*nocks an arrow with a dry, clicking calm*",
+    "*tracks a rat down the corridor, never blinking*",
+    "*restrings a bow with sinew that should not still bend*"
+  ],
+  "barks_combat": [
+    "*looses an arrow that whistles past your ear*",
+    "*draws to the cheekbone, eyeless and steady*"
+  ],
+  "chat": false,
+  "min_floor": 3,
+  "max_floor": 5
+}

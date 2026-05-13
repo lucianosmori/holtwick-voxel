@@ -1,0 +1,20 @@
+{
+  "id": "lantern_wisp",
+  "name": "Lantern Wisp",
+  "role": "spirit",
+  "sprite_key": "yellow_circle_outline",
+  "hp": 4,
+  "dmg": 3,
+  "barks_idle": [
+    "*bobs softly, casting a thin amber glow*",
+    "*hums a tune older than the stones*",
+    "*drifts toward a draft, then back again*"
+  ],
+  "barks_combat": [
+    "*flares white-hot*",
+    "*lashes out with a tongue of flame*"
+  ],
+  "chat": false,
+  "min_floor": 3,
+  "max_floor": 5
+}

@@ -1,0 +1,20 @@
+{
+  "id": "soulflayer",
+  "name": "Soulflayer",
+  "role": "aberration",
+  "sprite_key": "violet_diamond_outline",
+  "hp": 10,
+  "dmg": 4,
+  "barks_idle": [
+    "*tendrils taste the air, searching for memory*",
+    "*it pries open a long-shut door inside your head*",
+    "Such a tidy little library you keep in there."
+  ],
+  "barks_combat": [
+    "Open, please.",
+    "*reaches past your skull for the soft, lit thing inside*"
+  ],
+  "chat": false,
+  "min_floor": 6,
+  "max_floor": 8
+}

@@ -1,0 +1,20 @@
+{
+  "id": "ghoul_runt",
+  "name": "Ghoul Runt",
+  "role": "undead",
+  "sprite_key": "pale_circle_outline",
+  "hp": 5,
+  "dmg": 2,
+  "barks_idle": [
+    "*gnaws on a finger that is not its own*",
+    "*shuffles in a slow, lopsided circle*",
+    "*moans softly, almost wistfully*"
+  ],
+  "barks_combat": [
+    "*lunges with broken yellow nails*",
+    "*snaps its jaw inches from your throat*"
+  ],
+  "chat": false,
+  "min_floor": 1,
+  "max_floor": 2
+}

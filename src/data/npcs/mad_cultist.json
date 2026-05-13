@@ -1,0 +1,20 @@
+{
+  "id": "mad_cultist",
+  "name": "Mad Cultist",
+  "role": "cultist",
+  "sprite_key": "red_pentagon_outline",
+  "hp": 5,
+  "dmg": 2,
+  "barks_idle": [
+    "The Warden sees. The Warden weighs.",
+    "We are the candles. We must burn.",
+    "*draws sigils on the wall with bleeding fingers*"
+  ],
+  "barks_combat": [
+    "Your blood will feed the gate!",
+    "Sing! Sing as you bleed!"
+  ],
+  "chat": false,
+  "min_floor": 1,
+  "max_floor": 2
+}

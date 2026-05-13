@@ -1,0 +1,20 @@
+{
+  "id": "shadow_wraith",
+  "name": "Shadow Wraith",
+  "role": "wraith",
+  "sprite_key": "black_diamond_outline",
+  "hp": 9,
+  "dmg": 4,
+  "barks_idle": [
+    "*the air bends cold around its outline*",
+    "*a half-seen hand reaches and withdraws*",
+    "Once I had a name. The dark forgot it first."
+  ],
+  "barks_combat": [
+    "Your warmth offends me.",
+    "*phases through your guard*"
+  ],
+  "chat": false,
+  "min_floor": 6,
+  "max_floor": 8
+}

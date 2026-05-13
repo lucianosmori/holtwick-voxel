@@ -1,0 +1,20 @@
+{
+  "id": "lost_pilgrim",
+  "name": "Lost Pilgrim",
+  "role": "wanderer",
+  "sprite_key": "grey_triangle_outline",
+  "hp": 4,
+  "dmg": 1,
+  "barks_idle": [
+    "Have you seen the way out? I lost the candle hours ago.",
+    "They say the Warden hears every step. I try to walk softly.",
+    "I traded my map for a heel of bread. I regret the bread."
+  ],
+  "barks_combat": [
+    "Please — I meant no harm!",
+    "Don't, don't, don't..."
+  ],
+  "chat": true,
+  "min_floor": 1,
+  "max_floor": 3
+}

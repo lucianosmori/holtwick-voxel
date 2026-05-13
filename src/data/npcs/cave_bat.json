@@ -1,0 +1,20 @@
+{
+  "id": "cave_bat",
+  "name": "Cave Bat",
+  "role": "vermin",
+  "sprite_key": "black_triangle_outline",
+  "hp": 2,
+  "dmg": 1,
+  "barks_idle": [
+    "*flutters between stalactites*",
+    "*chirps inaudibly*",
+    "*hangs upside-down, watching*"
+  ],
+  "barks_combat": [
+    "*dives at your face*",
+    "*screeches and claws*"
+  ],
+  "chat": false,
+  "min_floor": 1,
+  "max_floor": 2
+}

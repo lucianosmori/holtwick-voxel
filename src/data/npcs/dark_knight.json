@@ -1,0 +1,20 @@
+{
+  "id": "dark_knight",
+  "name": "Dark Knight",
+  "role": "fallen_warrior",
+  "sprite_key": "gray_square_outline",
+  "hp": 12,
+  "dmg": 4,
+  "barks_idle": [
+    "*plate armor groans as it turns to face you*",
+    "*the visor is empty, but a faint ember glows inside*",
+    "I swore an oath. The oath outlived me."
+  ],
+  "barks_combat": [
+    "Step closer, oathbreaker.",
+    "*brings a great sword down in a flat, certain arc*"
+  ],
+  "chat": false,
+  "min_floor": 6,
+  "max_floor": 8
+}
