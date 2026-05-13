@@ -1,10 +1,10 @@
 {
     "updated_at":  "2026-05-12T00:00:00Z",
-    "iteration":  11,
+    "iteration":  12,
     "started_at":  "2026-05-12T00:00:00Z",
     "consecutive_no_progress":  0,
     "experiment":  "07-fp-overnight-roguelike-3d",
-    "last_error":  null,
-    "status":  "exploring",
-    "last_outcome":  "done"
+    "last_error":  "P1.7 SPEC-LOCK CHECKPOINT: GH Pages workflow committed and 07 mounted at /07-fp-overnight-roguelike-3d/. Loop halted per PROMPT.md until user verifies the live build at https://lucianosmori.github.io/poc-fiesta-2026-05/07-fp-overnight-roguelike-3d/ — flip status back to 'exploring' to resume into P2.",
+    "status":  "abandoned",
+    "last_outcome":  "checkpoint"
 }
