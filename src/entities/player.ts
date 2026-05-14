@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { VOXEL_WALL, type VoxelGrid } from "../world/voxel";
+import { VOXEL_EMPTY, VOXEL_WALL, type VoxelGrid } from "../world/voxel";
 
 export const PLAYER_SIZE = 0.6;
 export const PLAYER_HALF = PLAYER_SIZE / 2;
@@ -113,9 +113,17 @@ export class Player {
     const cellMaxX = Math.floor(maxX);
     const cellMinZ = Math.floor(minZ);
     const cellMaxZ = Math.floor(maxZ);
+    const upperY = this.grid.dims.height;
     for (let cz = cellMinZ; cz <= cellMaxZ; cz++) {
       for (let cx = cellMinX; cx <= cellMaxX; cx++) {
+        // Ground layer (y=0) is walkable terrain; legacy VOXEL_WALL stays
+        // blocking for backward compatibility.
         if (this.grid.get(cx, 0, cz) === VOXEL_WALL) return true;
+        // Any non-empty voxel above ground (tavern walls, future buildings)
+        // blocks the player's torso AABB.
+        for (let y = 1; y < upperY; y++) {
+          if (this.grid.get(cx, y, cz) !== VOXEL_EMPTY) return true;
+        }
       }
     }
     return false;

@@ -5,10 +5,17 @@ import {
   VOXEL_WATER,
   VoxelGrid,
 } from "./voxel";
+import { addTavern, TAVERN_WALL_HEIGHT } from "./tavern";
 
 export const VILLAGE_WIDTH = 64;
 export const VILLAGE_DEPTH = 64;
-export const VILLAGE_HEIGHT = 1;
+// Height = 1 (ground) + TAVERN_WALL_HEIGHT (stacked wall layers); ground tiles
+// live at y=0, building walls at y=1..2.
+export const VILLAGE_HEIGHT = 1 + TAVERN_WALL_HEIGHT;
+
+export const TAVERN_ORIGIN_X = 28;
+export const TAVERN_ORIGIN_Z = 14;
+export const TAVERN_DOORWAY_X = 32;
 
 const PLAZA_HALF = 10;
 const PATH_HALF = 3;
@@ -31,7 +38,14 @@ function mulberry32(seed: number): () => number {
 }
 
 export function buildVillage(seed: number = 1): VoxelGrid {
-  const grid = new VoxelGrid(VILLAGE_WIDTH, VILLAGE_HEIGHT, VILLAGE_DEPTH, VOXEL_FLOOR);
+  const grid = new VoxelGrid(VILLAGE_WIDTH, VILLAGE_HEIGHT, VILLAGE_DEPTH);
+  // VoxelGrid constructor only fills one value across the whole volume; we
+  // only want VOXEL_FLOOR on the ground plane (y=0), wall layers stay empty.
+  for (let z = 0; z < VILLAGE_DEPTH; z++) {
+    for (let x = 0; x < VILLAGE_WIDTH; x++) {
+      grid.set(x, 0, z, VOXEL_FLOOR);
+    }
+  }
   const rand = mulberry32(seed);
   const cx = Math.floor(VILLAGE_WIDTH / 2);
   const cz = Math.floor(VILLAGE_DEPTH / 2);
@@ -112,6 +126,15 @@ export function buildVillage(seed: number = 1): VoxelGrid {
       grid.set(x, 0, z, VOXEL_WATER);
     }
   }
+
+  // Tavern stamped last so it overwrites whatever ground tiles (grass + the
+  // N/S dirt road that runs through cx=32) are under its footprint with a
+  // continuous plank floor + wall ring.
+  addTavern(grid, {
+    originX: TAVERN_ORIGIN_X,
+    originZ: TAVERN_ORIGIN_Z,
+    doorwayX: TAVERN_DOORWAY_X,
+  });
 
   return grid;
 }
