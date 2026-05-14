@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\"",
     "check:data": "tsx scripts/checkData.ts",
-    "validate:visual": "node scripts/validate-visual.mjs"
+    "validate:visual": "node scripts/validate-visual.mjs",
+    "gen:sprites": "node tools/genSprites.mjs"
   },
   "dependencies": {
     "@mlc-ai/web-llm": "^0.2.83",
