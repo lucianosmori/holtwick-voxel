@@ -19,16 +19,41 @@
 - [x] ~~**P1.6** Billboard NPC `src/entities/npc.ts`: `PlaneGeometry(1,1.5)` with a placeholder canvas-generated texture (single solid color + label). Spawn one NPC at a fixed cell in the starter room. Each frame `mesh.lookAt(camera.position)` constrained to Y axis only.~~ (iter 11 — `BillboardNpc` class wraps `PlaneGeometry(1,1.5)` + `MeshBasicMaterial(map=canvasTexture)`; `makePlaceholderNpcTexture` paints solid bg + centered label on a 128×192 canvas with nearest-neighbour filtering and sRGB color space; `faceCamera()` copies camera pos with `y=npc.y` and `lookAt`s that, so the plane only yaws; one NPC spawned at cell (16, 22) of the starter room and refaced each RAF tick; build green at 461 kB)
 - [x] ~~**P1.7** GH Pages deploy workflow `.github/workflows/deploy.yml`: build on push to main, publish `dist/` to `gh-pages` branch. Configure `vite.config.ts` `base` for the repo path. First deploy must serve the P1 build successfully — link goes into NOTES.md. **SPEC-LOCK CHECKPOINT: stop here and surface the live URL to the user before iter on P2.**~~ (iter 12 — extended existing `.github/workflows/pages.yml` to also build 07 and mount its `dist/` under `07-fp-overnight-roguelike-3d/` in the combined Pages artifact; relied on existing `vite.config.ts` `base: "./"` so relative asset paths resolve from the subdir; expected URL `https://lucianosmori.github.io/poc-fiesta-2026-05/07-fp-overnight-roguelike-3d/`. **CHECKPOINT — loop must halt until user confirms the live build.**)
 
-## Priority 2 — Hypothesis validation (procedural + chat + sprites)
+## Spec-lock unlocked 2026-05-13
 
-- [ ] **P2.1** PixelLab pixflux script `tools/genSprites.ts` (Node, not bundled): reads NPC JSONs, calls PixelLab API, writes `public/sprites/<id>_<dir>.png` for 4 directions. Env-gated (`PIXELLAB_API_KEY`); skip-if-exists by default. Document run instructions in NOTES.md.
-- [ ] **P2.2** Wire real sprites: NPC billboard loads `public/sprites/<id>_<dir>.png` via `TextureLoader`, picks direction texture from yaw quadrant relative to camera. Fall back to placeholder if missing.
-- [ ] **P2.3** Procedural dungeon gen `src/world/gen.ts`: simple BSP or rooms+corridors, deterministic seed. Replaces `buildStarterRoom` with `generateLevel(seed)`. Spawn 10 NPCs at random walkable cells (sampled from the 31 NPCs).
-- [ ] **P2.4** Stairs + multi-level: spawn a stair voxel type; player overlap loads next seeded level. ≥3 levels reachable.
-- [ ] **P2.5** Chat overlay UI `src/ui/chat.ts`: raycast on click from camera through cursor → NPC. Open HTML overlay, pipe text through `chat/webllm.ts`. Stream tokens into the overlay; close on Esc.
-- [ ] **P2.6** SFX hookup: wire `audio/sfx.ts` to footstep + chat-open events. Volume slider in overlay.
-- [ ] **P2.7** Polish: title screen, level counter HUD, simple death/restart on falling off the map (if ever).
+User verified iter-12 build, approved the **Holtwick-tavern fantasy** theme + **Kenney mini-block voxel textures** + **PixelLab pixflux NPC sprites by ralph** + **Playwright validation in every iter**. Continue from P2.
+
+## Priority 2 — Visual lock (Holtwick fantasy aesthetic)
+
+- [ ] **P2.0** Add Playwright validation to the loop. Install `playwright` as dev dep. Add `scripts/validate-visual.mjs` that: spins `vite preview` on :4173, loads page with `waitUntil:networkidle`, waits for `canvas`, asserts no console errors, takes full-page screenshot to `artifacts/screenshots/iter-${ITER:-manual}.png`. Add `npm run validate:visual` script. From this iter forward, the loop runs `npm run build && npm run validate:visual` and **fails the iter on validation failure** — patch loop.ps1/loop.sh to call it.
+- [ ] **P2.1** Wire Kenney mini-block voxel texture pack (already staged at `assets/voxel/` by the user) into `src/render/voxelMesh.ts`. Replace flat-color materials with `MeshStandardMaterial` per voxel type, each with a Kenney texture loaded via `TextureLoader`. Set `NearestFilter` for crisp pixel look. Voxel types: floor=grass, wall=stone or wood, plus new types: dirt, planks, water (for later use).
+- [ ] **P2.2** Add lighting: `DirectionalLight` (sun, color 0xffeecc, intensity 1.2, positioned high-southwest, casts shadows) + `HemisphereLight` (sky/ground tint, intensity 0.4). Update existing materials to receive light. Verify visual with `validate:visual`.
+- [ ] **P2.3** Add skybox: load Kenney CC0 sky/nature skybox cube texture from `assets/voxel/skybox/` (user-staged) into scene background via `CubeTextureLoader`. Verify the horizon line reads correctly with the new lighting.
+- [ ] **P2.4** Procedural village floor `src/world/village.ts`: replace `buildStarterRoom` with `buildVillage(seed)` that returns a 64×1×64 `VoxelGrid` with: grass biome ~60%, dirt paths ~25%, stone plaza ~10%, water pond ~5%. Deterministic via seed. Player still spawns at world center.
+- [ ] **P2.5** Add a tavern building procedurally at the plaza: wooden walls (planks voxel type), single doorway (gap in wall), interior 6×4 floor. Hand-coded layout is fine — no need for full BSP yet.
+
+## Priority 3 — Character lock (PixelLab pixflux NPCs by ralph)
+
+- [ ] **P3.1** PixelLab pixflux generation script `tools/genSprites.mjs` (Node, ESM, not bundled): reads `src/data/npcs.ts` to get 31 NPC IDs + names + persona/visual descriptors. For each NPC, calls PixelLab pixflux API with: a fantasy-village style anchor prompt + the NPC's persona-derived visual prompt + a fixed style-seed for the whole batch (so all 31 sprites feel like one art family). Writes `public/sprites/<npc_id>_<dir>.png` for 4 directions (south/west/north/east). Env-gated (`PIXELLAB_API_KEY`); skip-if-exists by default; rate-limit with sleep between requests. Document run instructions in NOTES.md. Run once and commit the generated PNGs.
+- [ ] **P3.2** Wire real sprites into `src/entities/npc.ts`: replace placeholder canvas with `TextureLoader` loading `public/sprites/<npc_id>_<dir>.png`. Pick direction texture from yaw quadrant of (camera→npc) vector. Fall back to placeholder canvas if missing. Verify visually: screenshot should show recognizable pixel-art NPC instead of label-on-color.
+- [ ] **P3.3** Spawn all 31 NPCs at scripted positions around the village: tavern interior (innkeeper, bard, regulars), plaza (merchants, guards), village edge (farmers, woodcutters), forest border (hunter, druid). Positions in a new `src/data/npcSpawns.ts` map keyed by NPC ID. Each spawn has `(x, z)` cell coords. Visual validation: all 31 sprites should render in a single screenshot or scrollable view.
+
+## Priority 4 — Gameplay depth (graduation features)
+
+- [ ] **P4.1** Dialog modal `src/ui/dialog.ts`: on click within 3 voxels of an NPC (raycast or AABB check), open an HTML overlay with NPC name + chat input. Close on Esc. Just the UI shell first; no LLM wired yet.
+- [ ] **P4.2** Wire `chat/webllm.ts` into the dialog modal: stream WebLLM tokens into the chat output. Use the NPC's persona JSON as system prompt. Tested via Playwright by clicking the canvas at the NPC's screen position and verifying the modal opens.
+- [ ] **P4.3** TTS playback per NPC: lift voice configs from `lucianosmori/holtwick-tavern@main` (specifically the `voiceConfig` per NPC + the SpeechSynthesis call). Plumb into dialog: when WebLLM emits a complete sentence, send to TTS in the NPC's voice. Mute toggle in dialog UI.
+- [ ] **P4.4** Day/night cycle: animate `DirectionalLight` orbit over 6-min cycle (3 min day, 3 min night). Adjust `HemisphereLight` colors with time. Verify via Playwright at two different fake-time points.
+- [ ] **P4.5** Quest JSON schema + first quest `src/data/quests/welcome.json`: simple "talk to Edda then to Finn" flow. State tracked in `src/state/questLog.ts`. Indicator above active quest NPC (a `!` billboard).
+- [ ] **P4.6** Inventory bar UI: single bottom-edge row of 8 slots. Pick up clickable items dropped in world (one test item: an apple in the tavern). Stored in `src/state/inventory.ts`.
+
+## Priority 5 — Polish + graduation
+
+- [ ] **P5.1** Sound: ambient music loop in `assets/audio/` (CC0 from Kenney or freesound). Footstep SFX when player moves. Tavern hum when inside the building. Volume slider in dialog UI.
+- [ ] **P5.2** Title screen: `src/ui/title.ts` shows "Holtwick: The Voxel Tavern" with start button. Hides on click; reveals canvas. Style-locked to fantasy aesthetic.
+- [ ] **P5.3** Performance pass: enable frustum culling on voxel meshes, audit draw calls (target ≤50 for the full village), check FPS on the GH Pages live build (target ≥55 on mid laptop). Document numbers in NOTES.md.
+- [ ] **P5.4** README rewrite: screenshots (lifted from Playwright artifacts), "play it here" link to GH Pages URL, controls list, NPC roster, graduation marker. Flip `status.json` to `graduated` after this lands.
 
 ## Done (struck through, kept for audit)
 
-<!-- Move completed items here or strike in place. -->
+P0.1-P0.4 + P1.1-P1.7 — see strike-throughs above. Iter history in NOTES.md.
