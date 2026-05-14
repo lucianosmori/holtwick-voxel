@@ -1,10 +1,10 @@
 {
     "updated_at":  "2026-05-13",
-    "iteration":  14,
+    "iteration":  15,
     "started_at":  "2026-05-12T00:00:00Z",
     "consecutive_no_progress":  0,
     "experiment":  "07-fp-overnight-roguelike-3d",
     "last_error":  null,
     "status":  "exploring",
-    "last_outcome":  "P2.0b pixel-content assert in visual gate; blank-canvas regressions now caught"
+    "last_outcome":  "P2.1 Kenney voxel textures wired — grass/stone/dirt/planks via TextureLoader+NearestFilter; visual gate confirms textured floor+walls"
 }
