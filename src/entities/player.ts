@@ -33,6 +33,8 @@ export class Player {
     this.mesh = new THREE.Mesh(geom, mat);
     this.mesh.name = "player";
     this.mesh.position.set(0, PLAYER_Y, 0);
+    this.mesh.castShadow = true;
+    this.mesh.receiveShadow = true;
   }
 
   attachKeyboard(target: Window = window): void {

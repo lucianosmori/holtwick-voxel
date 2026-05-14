@@ -95,6 +95,8 @@ export function buildVoxelMesh(
     const mesh = new THREE.InstancedMesh(SHARED_BOX, material, total);
     mesh.name = `voxel:${type}`;
     mesh.count = 0;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
     meshes.set(type, { mesh, cursor: 0 });
   }
 

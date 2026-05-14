@@ -50,6 +50,8 @@ export function bootstrapScene(canvasSelector = "#game"): SceneBundle {
     preserveDrawingBuffer: isTestRun,
   });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const resize = () => {
     const w = canvas.clientWidth;
@@ -62,10 +64,25 @@ export function bootstrapScene(canvasSelector = "#game"): SceneBundle {
   resize();
   window.addEventListener("resize", resize);
 
-  const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-  dir.position.set(5, 10, 5);
-  scene.add(ambient, dir);
+  // Hemisphere fills sky/ground tint cheaply; directional acts as the sun
+  // with shadow mapping so player + walls cast across the floor.
+  const hemi = new THREE.HemisphereLight(0xbcd6ff, 0x4a3a2a, 0.4);
+  hemi.position.set(0, 50, 0);
+
+  const sun = new THREE.DirectionalLight(0xffeecc, 1.2);
+  sun.position.set(-18, 30, -18); // high-southwest of a centered ~32x32 room
+  sun.target.position.set(0, 0, 0);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  const shadowExtent = 22; // covers the 32x32 starter room (±16) with margin
+  sun.shadow.camera.left = -shadowExtent;
+  sun.shadow.camera.right = shadowExtent;
+  sun.shadow.camera.top = shadowExtent;
+  sun.shadow.camera.bottom = -shadowExtent;
+  sun.shadow.camera.near = 1;
+  sun.shadow.camera.far = 80;
+  sun.shadow.bias = -0.0005;
+  scene.add(hemi, sun, sun.target);
 
   const dispose = () => {
     window.removeEventListener("resize", resize);
