@@ -36,10 +36,18 @@ export function bootstrapScene(canvasSelector = "#game"): SceneBundle {
   camera.position.copy(CAMERA_OFFSET);
   camera.lookAt(0, 0, 0);
 
+  // `preserveDrawingBuffer` keeps the canvas content readable after compositing,
+  // which is required for headless screenshot tools (Playwright validate:visual)
+  // that snapshot outside the renderer's RAF tick. Enabled only when the URL
+  // carries `?test=1` so production keeps the default fast path.
+  const isTestRun =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).has("test");
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
     powerPreference: "high-performance",
+    preserveDrawingBuffer: isTestRun,
   });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 

@@ -56,10 +56,18 @@ for i in $(seq 1 "$MAX_ITER"); do
 
   echo "=== iter ${i}/${MAX_ITER} ==="
   # Single-prompt invocation. claude reads PROMPT.md + IMPLEMENTATION_PLAN.md.
-  claude -p "Run one iteration per PROMPT.md. Pick exactly one task from IMPLEMENTATION_PLAN.md (highest priority unfinished), complete it, update files, commit on green." || {
+  claude -p "Run one iteration per PROMPT.md. Pick exactly one task from IMPLEMENTATION_PLAN.md (highest priority unfinished), complete it, update files, commit on green. Green means: \`npm run build\` AND \`npm run validate:visual\` both pass — run them locally before committing and abort the iter if either fails." || {
     ping "iter ${i} FAILED — see terminal"
     exit 1
   }
+
+  # Post-iter validation gate (P2.0). Belt-and-suspenders: the agent should
+  # also run these before committing, but the loop re-runs them so an iter
+  # that regressed visuals halts the burn instead of compounding breakage.
+  echo "=== iter ${i} validation gate ==="
+  export ITER="${i}"
+  npm run build || { ping "iter ${i} build FAILED after commit — halting"; exit 1; }
+  npm run validate:visual || { ping "iter ${i} validate:visual FAILED after commit — halting"; exit 1; }
 done
 
 ping "loop stopped — max_iter=${MAX_ITER} reached"
