@@ -55,7 +55,7 @@ for ($i = 1; $i -le $MaxIter; $i++) {
     }
 
     Write-Host "=== iter $i/$MaxIter ==="
-    & claude -p "Run one iteration per PROMPT.md. Pick exactly one task from IMPLEMENTATION_PLAN.md (highest priority unfinished), complete it, update files, commit on green. Green means: ``npm run build`` AND ``npm run validate:visual`` both pass — run them locally before committing and abort the iter if either fails."
+    & claude -p "Run one iteration per PROMPT.md. Pick exactly one task from IMPLEMENTATION_PLAN.md (highest priority unfinished), complete it, update files, commit on green. Green means: npm run build AND npm run validate:visual both pass - run them locally before committing and abort the iter if either fails."
     if ($LASTEXITCODE -ne 0) {
         Send-Ping "iter $i FAILED - see terminal"
         exit 1
