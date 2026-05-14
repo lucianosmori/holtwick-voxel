@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { buildProceduralSky } from "./sky";
 
 export const CAMERA_PITCH_RAD = (55 * Math.PI) / 180;
 export const CAMERA_DISTANCE = 18;
@@ -25,7 +26,7 @@ export function bootstrapScene(canvasSelector = "#game"): SceneBundle {
   }
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x111418);
+  scene.background = buildProceduralSky();
 
   const camera = new THREE.PerspectiveCamera(
     55,

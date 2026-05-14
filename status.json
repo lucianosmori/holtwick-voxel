@@ -1,10 +1,10 @@
 {
     "updated_at":  "2026-05-13",
-    "iteration":  16,
+    "iteration":  17,
     "started_at":  "2026-05-12T00:00:00Z",
     "consecutive_no_progress":  0,
     "experiment":  "07-fp-overnight-roguelike-3d",
     "last_error":  null,
     "status":  "exploring",
-    "last_outcome":  "P2.2 lighting online — HemisphereLight + warm DirectionalLight with PCF soft shadows; player casts a visible shadow on the grass floor"
+    "last_outcome":  "P2.3 procedural cube-sky background — gradient horizon band visible above the room, replaces the flat dark blue clear color"
 }
