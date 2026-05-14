@@ -4,6 +4,7 @@ export const VOXEL_WALL = 2 as const;
 export const VOXEL_DIRT = 3 as const;
 export const VOXEL_PLANKS = 4 as const;
 export const VOXEL_WATER = 5 as const;
+export const VOXEL_STONE = 6 as const;
 
 export type VoxelType =
   | typeof VOXEL_EMPTY
@@ -11,7 +12,8 @@ export type VoxelType =
   | typeof VOXEL_WALL
   | typeof VOXEL_DIRT
   | typeof VOXEL_PLANKS
-  | typeof VOXEL_WATER;
+  | typeof VOXEL_WATER
+  | typeof VOXEL_STONE;
 
 export interface VoxelDims {
   readonly width: number;

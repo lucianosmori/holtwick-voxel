@@ -1,24 +1,25 @@
 import * as THREE from "three";
 import { bootstrapScene, CAMERA_OFFSET } from "./render/scene";
-import { buildStarterRoom, STARTER_ROOM_WIDTH, STARTER_ROOM_DEPTH } from "./world/rooms";
+import { buildVillage, VILLAGE_DEPTH, VILLAGE_WIDTH } from "./world/village";
 import { buildVoxelMesh } from "./render/voxelMesh";
 import { Player } from "./entities/player";
 import { BillboardNpc, NPC_Y } from "./entities/npc";
 
 const { scene, camera, renderer } = bootstrapScene("#game");
 
-const room = buildStarterRoom();
-const roomMesh = buildVoxelMesh(room);
-const gridOffset = new THREE.Vector3(-STARTER_ROOM_WIDTH / 2, 0, -STARTER_ROOM_DEPTH / 2);
-roomMesh.position.copy(gridOffset);
-scene.add(roomMesh);
+const VILLAGE_SEED = 1337;
+const world = buildVillage(VILLAGE_SEED);
+const worldMesh = buildVoxelMesh(world);
+const gridOffset = new THREE.Vector3(-VILLAGE_WIDTH / 2, 0, -VILLAGE_DEPTH / 2);
+worldMesh.position.copy(gridOffset);
+scene.add(worldMesh);
 
-const player = new Player(room, gridOffset);
+const player = new Player(world, gridOffset);
 player.attachKeyboard();
 scene.add(player.mesh);
 
-const NPC_CELL_X = 16;
-const NPC_CELL_Z = 22;
+const NPC_CELL_X = Math.floor(VILLAGE_WIDTH / 2) + 6;
+const NPC_CELL_Z = Math.floor(VILLAGE_DEPTH / 2) + 6;
 const npc = new BillboardNpc({
   label: "NPC",
   position: new THREE.Vector3(

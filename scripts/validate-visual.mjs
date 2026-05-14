@@ -44,7 +44,17 @@ try {
 
   console.log(`[validate:visual] loading ${URL}`);
   await page.goto(URL, { waitUntil: "networkidle", timeout: 20000 });
-  await page.waitForSelector("canvas#game", { timeout: 5000 });
+  // Canvas#game is in the static HTML; Three.js mounts to it after JS evaluates.
+  // Poll for the data-engine attribute as the readiness signal instead of
+  // page.waitForSelector — the latter has flaked on stable-but-changing canvases
+  // since the 64x64 village landed.
+  await page.waitForFunction(
+    () => {
+      const c = document.querySelector("canvas#game");
+      return !!c && c.hasAttribute("data-engine");
+    },
+    { timeout: 10000, polling: 100 },
+  );
   // Let the RAF loop run several frames so the scene draws into the buffer.
   await wait(750);
 

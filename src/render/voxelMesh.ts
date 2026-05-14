@@ -4,6 +4,7 @@ import {
   VOXEL_EMPTY,
   VOXEL_FLOOR,
   VOXEL_PLANKS,
+  VOXEL_STONE,
   VOXEL_WALL,
   VOXEL_WATER,
   type VoxelGrid,
@@ -28,6 +29,9 @@ export const DEFAULT_VOXEL_PALETTE: VoxelPalette = {
   [VOXEL_DIRT]: { textureUrl: dirtUrl, roughness: 0.95 },
   [VOXEL_PLANKS]: { textureUrl: planksUrl, roughness: 0.85 },
   [VOXEL_WATER]: { color: 0x3a6da6, roughness: 0.3, metalness: 0.1 },
+  // VOXEL_STONE shares the wall stone texture — semantically a stone-floor
+  // tile (no collision), visually the same Kenney slab.
+  [VOXEL_STONE]: { textureUrl: stoneUrl, roughness: 0.9 },
 };
 
 const SHARED_BOX = new THREE.BoxGeometry(1, 1, 1);

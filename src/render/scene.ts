@@ -71,17 +71,17 @@ export function bootstrapScene(canvasSelector = "#game"): SceneBundle {
   hemi.position.set(0, 50, 0);
 
   const sun = new THREE.DirectionalLight(0xffeecc, 1.2);
-  sun.position.set(-18, 30, -18); // high-southwest of a centered ~32x32 room
+  sun.position.set(-30, 50, -30); // high-southwest of the centered 64x64 village
   sun.target.position.set(0, 0, 0);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
-  const shadowExtent = 22; // covers the 32x32 starter room (±16) with margin
+  const shadowExtent = 40; // covers the 64x64 village (±32) with margin
   sun.shadow.camera.left = -shadowExtent;
   sun.shadow.camera.right = shadowExtent;
   sun.shadow.camera.top = shadowExtent;
   sun.shadow.camera.bottom = -shadowExtent;
   sun.shadow.camera.near = 1;
-  sun.shadow.camera.far = 80;
+  sun.shadow.camera.far = 140;
   sun.shadow.bias = -0.0005;
   scene.add(hemi, sun, sun.target);
 
