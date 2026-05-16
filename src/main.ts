@@ -7,7 +7,8 @@ import { BillboardNpc, NPC_Y } from "./entities/npc";
 import { setupJoystick } from "./input/joystick";
 import { bindInteract, updateInteract, type InteractableNpc } from "./ui/interact";
 import { bindDialog, openDialog, closeDialog } from "./ui/dialog";
-import { EDDA } from "./data/tavernCast";
+import { NPC_SPAWNS } from "./data/npcSpawns";
+import type { NpcDef } from "./data/npc.schema";
 
 const { scene, camera, renderer } = bootstrapScene("#game");
 
@@ -22,24 +23,32 @@ const player = new Player(world, gridOffset);
 player.attachKeyboard();
 scene.add(player.mesh);
 
-const NPC_CELL_X = Math.floor(VILLAGE_WIDTH / 2) + 6;
-const NPC_CELL_Z = Math.floor(VILLAGE_DEPTH / 2) + 6;
-const eddaNpc = new BillboardNpc({
-  label: "Edda",
-  position: new THREE.Vector3(
-    gridOffset.x + NPC_CELL_X + 0.5,
-    NPC_Y,
-    gridOffset.z + NPC_CELL_Z + 0.5,
-  ),
-});
-scene.add(eddaNpc.mesh);
-
 interface InteractableTavernNpc extends InteractableNpc {
-  def: typeof EDDA;
+  def: NpcDef;
 }
-const interactables: InteractableTavernNpc[] = [
-  { id: EDDA.id, name: EDDA.name, mesh: eddaNpc.mesh, def: EDDA },
-];
+
+const interactables: InteractableTavernNpc[] = NPC_SPAWNS.map((spawn) => {
+  const billboard = new BillboardNpc({
+    label: spawn.def.name.split(" ")[0], // short label — first word, e.g. "Edda"
+    position: new THREE.Vector3(
+      gridOffset.x + spawn.cellX + 0.5,
+      NPC_Y,
+      gridOffset.z + spawn.cellZ + 0.5,
+    ),
+    background: spawn.background,
+    foreground: spawn.foreground,
+  });
+  scene.add(billboard.mesh);
+  return {
+    id: spawn.def.id,
+    name: spawn.def.name,
+    mesh: billboard.mesh,
+    def: spawn.def,
+  };
+});
+
+// Keep references so we can re-face each NPC at the camera each frame.
+const billboards = interactables.map((n) => n.mesh);
 
 setupJoystick((v) => {
   player.setJoystick(v.active ? v.x : null, v.active ? v.y : undefined);
@@ -55,10 +64,10 @@ bindInteract((npc) => {
 });
 
 // `?test=1` exposes a small hook for `scripts/validate-visual.mjs` to drive
-// the dialog without needing to position the player next to the NPC.
+// the dialog without needing to position the player next to an NPC.
 if (typeof location !== "undefined" && new URLSearchParams(location.search).get("test") === "1") {
   (window as unknown as { __voxelTest__?: { openDialog: () => void } }).__voxelTest__ = {
-    openDialog: () => openDialog(EDDA),
+    openDialog: () => openDialog(interactables[0].def),
   };
 }
 
@@ -67,7 +76,18 @@ function updateCamera() {
   camera.lookAt(player.mesh.position);
 }
 updateCamera();
-eddaNpc.faceCamera(camera);
+
+// Y-axis-only billboard face: each NPC mesh tracks a camera position with
+// the same y so the plane only yaws, never tilts.
+const billboardLook = new THREE.Vector3();
+function faceBillboards() {
+  for (const mesh of billboards) {
+    billboardLook.copy(camera.position);
+    billboardLook.y = mesh.position.y;
+    mesh.lookAt(billboardLook);
+  }
+}
+faceBillboards();
 
 let last = performance.now();
 function frame(now: number) {
@@ -76,16 +96,14 @@ function frame(now: number) {
   player.update(dt);
   updateInteract(player.mesh, interactables);
   updateCamera();
-  eddaNpc.faceCamera(camera);
+  faceBillboards();
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
-// Esc closes the dialog when open — handled inside dialog.ts, but
-// re-asserting here is harmless and explicit.
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeDialog();
 });
 
-console.log("boot ok");
+console.log("boot ok — Holtwick Voxel, 7 NPCs spawned");
