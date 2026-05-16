@@ -82,7 +82,7 @@ export function resetHistory(npcId: string): void {
   histories.delete(npcId);
 }
 
-function pushTurn(npcId: string, turn: ChatTurn): void {
+export function pushTurn(npcId: string, turn: ChatTurn): void {
   const list = histories.get(npcId) ?? [];
   list.push(turn);
   if (list.length > HISTORY_TURN_CAP) list.splice(0, list.length - HISTORY_TURN_CAP);

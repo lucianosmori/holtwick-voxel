@@ -14,6 +14,7 @@ import {
   streamReply,
   subscribeStatus,
 } from "../chat/webllm";
+import { streamProxyReply } from "../chat/proxy";
 
 let bound = false;
 let onCloseCb: (() => void) | null = null;
@@ -94,29 +95,61 @@ async function handleSend(): Promise<void> {
   streaming = true;
   const bubble = appendMessage("assistant", "…");
 
+  // Fallback chain: WebLLM (in-browser, fast once cached) -> Cloudflare/Groq
+  // proxy (cross-browser, no model download) -> scripted bark (last resort).
+  const callbacks = {
+    onToken: (acc: string) => {
+      bubble.textContent = acc;
+      scrollToBottom();
+    },
+    onDone: (final: string) => {
+      bubble.textContent = final;
+      scrollToBottom();
+    },
+    onError: (msg: string) => {
+      // Don't paint the error directly — caller decides next fallback.
+      console.warn("[dialog] backend error:", msg);
+    },
+  };
+
   try {
     const engine = await ensureEngine();
-    if (!engine || !isReady()) {
-      const fallback = pickRandom(npc.barks_idle) ?? "...";
-      const reason = lastInitError() ? " (scripted bark — WebLLM unavailable)" : "";
-      bubble.textContent = `${fallback}${reason}`;
-      scrollToBottom();
+    if (engine && isReady()) {
+      bubble.textContent = "";
+      await streamReply(npc, text, callbacks);
       return;
     }
-    bubble.textContent = "";
-    await streamReply(npc, text, {
+
+    // WebLLM not available (WebGPU missing OR init failed). Try the proxy.
+    bubble.textContent = "…";
+    let proxyFailed = false;
+    let proxyAcc = "";
+    await streamProxyReply(npc, text, {
       onToken: (acc) => {
+        proxyAcc = acc;
         bubble.textContent = acc;
         scrollToBottom();
       },
       onDone: (final) => {
+        proxyAcc = final;
         bubble.textContent = final;
         scrollToBottom();
       },
       onError: (msg) => {
-        bubble.textContent = `(error: ${msg})`;
+        proxyFailed = true;
+        console.warn("[dialog] proxy error:", msg);
       },
     });
+
+    if (proxyFailed || proxyAcc.length === 0) {
+      // Both LLM paths down — scripted bark with explanatory suffix.
+      const fb = pickRandom(npc.barks_idle) ?? "...";
+      const reason = lastInitError()
+        ? " (scripted bark — WebLLM + proxy both unavailable)"
+        : " (scripted bark — proxy unreachable)";
+      bubble.textContent = `${fb}${reason}`;
+      scrollToBottom();
+    }
   } finally {
     streaming = false;
     send.disabled = false;
