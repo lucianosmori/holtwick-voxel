@@ -1,7 +1,13 @@
 {
-  "name": "overnight-roguelike-3d",
+  "name": "holtwick-voxel",
   "private": true,
   "version": "0.0.1",
+  "description": "Voxel rogue-like 3D version of Holtwick Tavern — Three.js + WebLLM NPCs + procedural village",
+  "homepage": "https://lucianosmori.github.io/holtwick-voxel/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lucianosmori/holtwick-voxel.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -1,16 +1,47 @@
-﻿# 07-fp-overnight-roguelike-3d
+# Holtwick Voxel
 
-Auto-promoted from POC_BACKLOG.md on 2026-05-12 by user-initiated promote (Telegram OK 2026-05-12).
+3D voxel rogue-like set in the Holtwick Tavern world. Three.js renderer, WebLLM-powered NPCs, procedural voxel village with day/night, quests, and a tavern at the center.
 
-## Source backlog entry
+**Play it →** https://lucianosmori.github.io/holtwick-voxel/
 
-- **Source:** Direct follow-up to abandoned `02-fp-overnight-roguelike` (Phaser version shipped technically but rejected on aesthetic). The "or" choice in the prior backlog let ralph auto-pick Phaser; this entry removes the ambiguity.
-- **Hypothesis:** A 9-12h Opus 4.7 ralph burn with the stack **locked to Three.js + voxel terrain + PixelLab pixflux textures from iter 1** produces a rogue-like that actually matches the user's mental model, reusing the NPC schema and WebLLM chat code from `02-fp-overnight-roguelike/src/data` and `src/chat`.
-- **Minimal first move:** Day-1 spec lock (no "or" choices). Renderer: Three.js r160+. Terrain: voxel-style cubes (no mesh import — built from arrays). NPC sprites: PixelLab pixflux 4-direction billboards facing camera, or full voxel models if time permits. Camera: top-down 3D with slight tilt (à la Diablo). First slice: walkable voxel floor + WASD + camera follow.
-- **Promotion criteria:** Playable in browser; ≥3 procedural levels; ≥10 NPCs each with PixelLab textures; deployable to GH Pages; user sees the first build and says "yes that's what I had in mind."
-- **Lift from abandoned 02-fp:** `npc.schema.ts`, all 31 NPC JSONs, `chat/webllm.ts` (port verbatim), `audio/sfx.ts`. Do NOT lift WorldScene / floor.ts / sprite.ts — voxel renderer is a clean rewrite.
-- **Risk:** Three.js learning curve + voxel terrain + procedural gen + PixelLab integration in one burn is more aggressive than the Phaser version was. Plan a "spec-lock checkpoint" after iter 1: user reviews the iter-1 sharpened plan before iter 2 fires. Don't over-promise 50 NPCs — start with 10.
+Companion to [holtwick-tavern](https://github.com/lucianosmori/holtwick-tavern) (2D web chat with the same 31 NPCs).
 
 ## Status
 
-`exploring` -- auto-promoted; ralph will drain `IMPLEMENTATION_PLAN.md` until graduated or abandoned. See `NOTES.md` for the running journal.
+Early access. The village world, lighting, shadows, sky, tavern building, and Playwright visual-validation gate are in place. NPC pixel-art sprites and dialog UI are next.
+
+| Slice | State |
+|---|---|
+| Voxel renderer + textures (Kenney CC0) | ✅ |
+| Procedural village floor (grass/dirt/stone/water) | ✅ |
+| Tavern building (plank walls, doorway) | ✅ |
+| Player movement + camera follow + collision | ✅ |
+| Lighting + shadows + sky | ✅ |
+| NPC pixel-art sprites (31, via PixelLab) | ⏳ blocked on credits |
+| WebLLM dialog modal + per-NPC TTS | ⏳ planned |
+| Day/night cycle, quests, inventory | ⏳ planned |
+
+Iteration history in [`NOTES.md`](./NOTES.md); active task list in [`IMPLEMENTATION_PLAN.md`](./IMPLEMENTATION_PLAN.md).
+
+## Develop locally
+
+```bash
+npm install
+npm run dev          # vite dev server on :5173
+npm run build        # tsc --noEmit + vite build
+npm run preview      # serve dist/ on :4173 (matches the live build)
+npm run validate:visual  # headless Playwright screenshot + console-error check
+```
+
+## Stack
+
+- **Renderer:** Three.js r160, `InstancedMesh` per voxel type, `MeshStandardMaterial` with Kenney prototype textures (`NearestFilter` for crisp pixel look)
+- **World:** 64×1×3 voxel grid (`Uint8Array`), procedural village generator (deterministic seed), procedural cube-sky background
+- **Lighting:** `HemisphereLight` + `DirectionalLight` with PCF soft shadows
+- **NPCs:** `PlaneGeometry` billboards facing the camera (Y-axis only), 31 lifted from holtwick-tavern with persona + voice + dialog seeds
+- **Chat:** `@mlc-ai/web-llm` (in-browser LLM, no server) — ported from holtwick-tavern
+- **Validation:** Playwright headless Chromium gate in every iter — screenshot to `artifacts/screenshots/iter-NN.png`, pixel-content assert (catches blank-canvas regressions), console-error guard
+
+## License
+
+MIT. Voxel textures from [Kenney Prototype Textures](https://kenney.nl/assets/prototype-textures) (CC0).
