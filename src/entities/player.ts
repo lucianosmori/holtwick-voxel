@@ -40,10 +40,21 @@ export class Player {
 
   attachKeyboard(target: Window = window): void {
     if (this.detach) return;
+    const isEditableTarget = (t: EventTarget | null): boolean => {
+      const el = t as HTMLElement | null;
+      if (!el) return false;
+      return (
+        el.tagName === "INPUT" ||
+        el.tagName === "TEXTAREA" ||
+        el.isContentEditable === true
+      );
+    };
     const onDown = (e: KeyboardEvent) => {
+      if (isEditableTarget(e.target)) return; // Don't eat letters while typing.
       if (this.applyKey(e.code, true)) e.preventDefault();
     };
     const onUp = (e: KeyboardEvent) => {
+      if (isEditableTarget(e.target)) return;
       if (this.applyKey(e.code, false)) e.preventDefault();
     };
     target.addEventListener("keydown", onDown);

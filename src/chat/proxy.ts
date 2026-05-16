@@ -17,6 +17,9 @@ import {
 
 const PROXY_URL = "https://holtwick-llm.lucianosmori.workers.dev/chat";
 const HISTORY_TURN_CAP = 12;
+// Cap the round-trip so a hung worker / Groq timeout doesn't strand the
+// dialog spinner on "…" — the bubble falls through to the scripted bark.
+const PROXY_REQUEST_TIMEOUT_MS = 8000;
 
 interface ProxyChunk {
   choices?: { delta?: { content?: string } }[];
@@ -34,6 +37,25 @@ export async function isProxyReachable(): Promise<boolean> {
   }
 }
 
+// Fire-and-forget warmup. Cloudflare Workers cold-start adds ~50-100ms on the
+// first request after idle; pinging /health when the player opens the dialog
+// (or even when the page loads) means the actual /chat POST hits a warm
+// isolate. Throttled so rapid opens don't spam the worker.
+let lastWarmupAt = 0;
+const WARMUP_MIN_INTERVAL_MS = 30_000;
+
+export function warmupProxy(): void {
+  const now = Date.now();
+  if (now - lastWarmupAt < WARMUP_MIN_INTERVAL_MS) return;
+  lastWarmupAt = now;
+  void fetch("https://holtwick-llm.lucianosmori.workers.dev/health", {
+    method: "GET",
+    signal: AbortSignal.timeout(2000),
+  }).catch(() => {
+    // Warmup is best-effort; the real /chat call will surface any actual error.
+  });
+}
+
 export async function streamProxyReply(
   npc: NpcDef,
   userMsg: string,
@@ -46,6 +68,7 @@ export async function streamProxyReply(
     res = await fetch(PROXY_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(PROXY_REQUEST_TIMEOUT_MS),
       body: JSON.stringify({
         npc: {
           id: npc.id,

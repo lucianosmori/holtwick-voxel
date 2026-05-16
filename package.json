@@ -17,6 +17,7 @@
     "lint": "eslint \"src/**/*.ts\"",
     "check:data": "tsx scripts/checkData.ts",
     "validate:visual": "node scripts/validate-visual.mjs",
+    "test:dialog": "node scripts/test-dialog.mjs",
     "gen:sprites": "node tools/genSprites.mjs"
   },
   "dependencies": {

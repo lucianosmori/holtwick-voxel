@@ -31,10 +31,14 @@ export function bindInteract(handler: InteractHandler): void {
   });
 
   window.addEventListener("keydown", (e) => {
-    if (e.code === "KeyE" && nearest && !e.repeat) {
-      e.preventDefault();
-      handler(nearest);
-    }
+    if (e.code !== "KeyE" || !nearest || e.repeat) return;
+    // Don't hijack "e" when the player is typing into the chat input or
+    // any other editable element — that was the "hllo" typing bug.
+    const target = e.target as HTMLElement | null;
+    if (target?.tagName === "INPUT" || target?.tagName === "TEXTAREA" || target?.isContentEditable) return;
+    if (document.getElementById("dialog-backdrop")?.classList.contains("show")) return;
+    e.preventDefault();
+    handler(nearest);
   });
 }
 

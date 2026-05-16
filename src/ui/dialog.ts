@@ -14,7 +14,7 @@ import {
   streamReply,
   subscribeStatus,
 } from "../chat/webllm";
-import { streamProxyReply } from "../chat/proxy";
+import { streamProxyReply, warmupProxy } from "../chat/proxy";
 
 let bound = false;
 let onCloseCb: (() => void) | null = null;
@@ -38,6 +38,10 @@ export function bindDialog(onClose: () => void): void {
   onCloseCb = onClose;
 
   subscribeStatus((s) => setStatusText(s.text));
+
+  // Warm the proxy on bind so the first NPC the player approaches gets a
+  // hot worker isolate even before they open the dialog.
+  warmupProxy();
 
   $("dialog-close").addEventListener("click", () => closeDialog());
 
@@ -70,6 +74,8 @@ export function openDialog(npc: NpcDef): void {
   setStatusText(getStatus().text);
   $("dialog-backdrop").classList.add("show");
   ($("chat-input") as HTMLInputElement).focus();
+  // Warm the Cloudflare Worker so the first /chat POST hits a hot isolate.
+  warmupProxy();
 }
 
 export function closeDialog(): void {
