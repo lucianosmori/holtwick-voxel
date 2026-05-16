@@ -2,31 +2,202 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <link
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231a1a1a'/%3E%3Crect x='8' y='8' width='16' height='16' fill='%2348c0ff'/%3E%3C/svg%3E"
     />
-    <title>overnight-roguelike-3d</title>
+    <title>Holtwick Voxel</title>
     <style>
-      html,
-      body {
+      html, body {
         margin: 0;
         padding: 0;
         background: #111;
         color: #eee;
-        font-family: monospace;
+        font-family: system-ui, -apple-system, sans-serif;
         overflow: hidden;
+        touch-action: none;
+        -webkit-tap-highlight-color: transparent;
       }
       #game {
         display: block;
         width: 100vw;
         height: 100vh;
       }
+
+      /* Touch-only joystick (shown on coarse pointer / touch devices) */
+      #joystick {
+        display: none;
+        position: fixed;
+        bottom: 24px;
+        left: 24px;
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.10);
+        border: 2px solid rgba(255, 255, 255, 0.35);
+        touch-action: none;
+        z-index: 10;
+      }
+      #joystick-knob {
+        position: absolute;
+        top: 50%; left: 50%;
+        width: 60px; height: 60px;
+        margin-left: -30px; margin-top: -30px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.55);
+        pointer-events: none;
+      }
+      #interact-btn {
+        display: none;
+        position: fixed;
+        bottom: 48px;
+        right: 32px;
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        background: rgba(255, 200, 80, 0.85);
+        color: #222;
+        font-weight: 700;
+        font-size: 18px;
+        border: none;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 10;
+        touch-action: manipulation;
+        opacity: 0.4;
+      }
+      #interact-btn:disabled {
+        cursor: not-allowed;
+      }
+      @media (pointer: coarse) {
+        #joystick, #interact-btn { display: block; }
+      }
+
+      /* Hint overlay (shown when an NPC is in range) */
+      #hint {
+        position: fixed;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 8px 16px;
+        background: rgba(0,0,0,0.6);
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 8px;
+        font-size: 14px;
+        pointer-events: none;
+        transition: opacity 0.2s;
+        opacity: 0;
+        z-index: 5;
+      }
+      #hint.show { opacity: 1; }
+
+      /* Dialog modal */
+      #dialog-backdrop {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 100;
+        align-items: center; justify-content: center;
+        padding: 20px;
+      }
+      #dialog-backdrop.show { display: flex; }
+      #dialog {
+        max-width: 620px;
+        width: 100%;
+        max-height: 85vh;
+        background: #1d2230;
+        border: 2px solid #4a5775;
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      #dialog-header { display: flex; justify-content: space-between; align-items: center; }
+      #dialog-name { font-weight: 700; color: #ffc850; font-size: 20px; }
+      #dialog-status {
+        font-size: 11px; color: #88a;
+        padding: 3px 8px;
+        background: rgba(140, 140, 200, 0.12);
+        border-radius: 999px;
+      }
+      #chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        min-height: 200px;
+        max-height: 50vh;
+        padding: 8px;
+        background: rgba(0,0,0,0.3);
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .chat-msg {
+        padding: 8px 12px;
+        border-radius: 8px;
+        line-height: 1.4;
+        max-width: 85%;
+        word-wrap: break-word;
+      }
+      .chat-msg-user {
+        background: #2b3a5f;
+        align-self: flex-end;
+        color: #d8e4ff;
+      }
+      .chat-msg-assistant {
+        background: #2a2f3d;
+        align-self: flex-start;
+        color: #e8e8e8;
+      }
+      #chat-input-row {
+        display: flex;
+        gap: 6px;
+      }
+      #chat-input {
+        flex: 1;
+        padding: 8px 12px;
+        background: #2a2f3d;
+        border: 1px solid #4a5775;
+        border-radius: 6px;
+        color: #eee;
+        font-size: 14px;
+        font-family: inherit;
+      }
+      #chat-send, #dialog-close {
+        padding: 8px 16px;
+        background: #4a6fa8;
+        border: none;
+        border-radius: 6px;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      #dialog-close { background: #555; align-self: flex-end; }
     </style>
   </head>
   <body>
     <canvas id="game"></canvas>
+
+    <div id="joystick"><div id="joystick-knob"></div></div>
+    <button id="interact-btn" disabled>TALK</button>
+    <div id="hint"></div>
+
+    <div id="dialog-backdrop" role="dialog" aria-modal="true">
+      <div id="dialog">
+        <div id="dialog-header">
+          <div id="dialog-name">NPC</div>
+          <div id="dialog-status">stub — P4.2 wires WebLLM</div>
+        </div>
+        <div id="chat-messages"></div>
+        <div id="chat-input-row">
+          <input id="chat-input" type="text" placeholder="Say something..." autocomplete="off" />
+          <button id="chat-send" type="button">Send</button>
+        </div>
+        <button id="dialog-close" type="button">Close</button>
+      </div>
+    </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

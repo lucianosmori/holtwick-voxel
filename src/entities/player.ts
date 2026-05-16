@@ -21,6 +21,7 @@ export class Player {
     left: false,
     right: false,
   };
+  private joystickVec: { x: number; z: number } | null = null;
   private readonly grid: VoxelGrid;
   private readonly gridOffset: THREE.Vector3;
   private detach: (() => void) | null = null;
@@ -81,13 +82,30 @@ export class Player {
     }
   }
 
+  // Touch joystick override. `jx`/`jy` are screen-space -1..1 (y positive
+  // is down). Pass `null` to release the override and fall back to keyboard.
+  // Small deadzone keeps a resting thumb from drifting the player.
+  setJoystick(jx: number | null, jy?: number): void {
+    if (jx === null || jy === undefined || (Math.abs(jx) < 0.15 && Math.abs(jy) < 0.15)) {
+      this.joystickVec = null;
+      return;
+    }
+    // Screen-y down -> world-z positive matches keyboard "back" semantics.
+    this.joystickVec = { x: jx, z: jy };
+  }
+
   update(dt: number): void {
     let dx = 0;
     let dz = 0;
-    if (this.input.forward) dz -= 1;
-    if (this.input.back) dz += 1;
-    if (this.input.left) dx -= 1;
-    if (this.input.right) dx += 1;
+    if (this.joystickVec) {
+      dx = this.joystickVec.x;
+      dz = this.joystickVec.z;
+    } else {
+      if (this.input.forward) dz -= 1;
+      if (this.input.back) dz += 1;
+      if (this.input.left) dx -= 1;
+      if (this.input.right) dx += 1;
+    }
     if (dx === 0 && dz === 0) return;
     const len = Math.hypot(dx, dz);
     const stepX = (dx / len) * PLAYER_SPEED * dt;
