@@ -48,12 +48,17 @@ export function warmupProxy(): void {
   const now = Date.now();
   if (now - lastWarmupAt < WARMUP_MIN_INTERVAL_MS) return;
   lastWarmupAt = now;
+  // /health warms the worker isolate. /warm fires a 1-token Groq round-trip
+  // so the worker->Groq TLS pipe + model selection is hot when the player
+  // sends their first real message. Fire-and-forget both in parallel.
   void fetch("https://holtwick-llm.lucianosmori.workers.dev/health", {
     method: "GET",
     signal: AbortSignal.timeout(2000),
-  }).catch(() => {
-    // Warmup is best-effort; the real /chat call will surface any actual error.
-  });
+  }).catch(() => {});
+  void fetch("https://holtwick-llm.lucianosmori.workers.dev/warm", {
+    method: "GET",
+    signal: AbortSignal.timeout(5000),
+  }).catch(() => {});
 }
 
 export async function streamProxyReply(

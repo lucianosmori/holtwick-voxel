@@ -152,7 +152,7 @@ export async function ensureEngine(): Promise<MlcEngine | null> {
   // fallback is inevitable.
   if (!(await isWebGpuUsable())) {
     lastError = "WebGPU not available in this browser";
-    setStatus({ kind: "error", text: "WebGPU unavailable — scripted barks only" });
+    setStatus({ kind: "error", text: "WebGPU off — using cloud LLM (Groq)" });
     return null;
   }
   loading = true;
@@ -172,7 +172,7 @@ export async function ensureEngine(): Promise<MlcEngine | null> {
     const message = err instanceof Error ? err.message : String(err);
     lastError = message;
     engine = null;
-    setStatus({ kind: "error", text: "WebGPU unavailable — using scripted barks" });
+    setStatus({ kind: "error", text: "WebGPU off — using cloud LLM (Groq)" });
     return null;
   } finally {
     loading = false;
