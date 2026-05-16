@@ -15,6 +15,8 @@ export interface SceneBundle {
   camera: THREE.PerspectiveCamera;
   renderer: THREE.WebGLRenderer;
   canvas: HTMLCanvasElement;
+  sun: THREE.DirectionalLight;
+  hemi: THREE.HemisphereLight;
   resize: () => void;
   dispose: () => void;
 }
@@ -90,5 +92,5 @@ export function bootstrapScene(canvasSelector = "#game"): SceneBundle {
     renderer.dispose();
   };
 
-  return { scene, camera, renderer, canvas, resize, dispose };
+  return { scene, camera, renderer, canvas, sun, hemi, resize, dispose };
 }

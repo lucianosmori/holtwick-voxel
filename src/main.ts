@@ -9,8 +9,10 @@ import { bindInteract, updateInteract, type InteractableNpc } from "./ui/interac
 import { bindDialog, openDialog, closeDialog } from "./ui/dialog";
 import { NPC_SPAWNS } from "./data/npcSpawns";
 import type { NpcDef } from "./data/npc.schema";
+import { DayNight } from "./world/dayNight";
 
-const { scene, camera, renderer } = bootstrapScene("#game");
+const { scene, camera, renderer, sun, hemi } = bootstrapScene("#game");
+const dayNight = new DayNight(sun, hemi);
 
 const VILLAGE_SEED = 1337;
 const world = buildVillage(VILLAGE_SEED);
@@ -94,6 +96,7 @@ function frame(now: number) {
   const dt = Math.min(0.1, (now - last) / 1000);
   last = now;
   player.update(dt);
+  dayNight.update(dt);
   updateInteract(player.mesh, interactables);
   updateCamera();
   faceBillboards();
