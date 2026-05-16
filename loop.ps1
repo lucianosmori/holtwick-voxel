@@ -17,6 +17,11 @@ $ErrorActionPreference = 'Continue'
 $Experiment = Split-Path -Leaf (Get-Location)
 $Deadline = (Get-Date).AddMinutes($TimeboxMin)
 
+# Force Max OAuth: clear any stale ANTHROPIC_API_KEY so claude.exe uses the
+# OAuth session instead of an invalid key. Mirrored from ralph-orchestrator.ps1.
+$env:ANTHROPIC_API_KEY = $null
+Remove-Item Env:ANTHROPIC_API_KEY -ErrorAction SilentlyContinue
+
 # Load telegram creds from .env if present
 $envFile = Join-Path $env:USERPROFILE '.claude\channels\telegram\.env'
 if (Test-Path $envFile) {
