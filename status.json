@@ -1,10 +1,10 @@
 {
-    "updated_at":  "2026-05-13",
-    "iteration":  20,
+    "updated_at":  "2026-05-16",
+    "iteration":  21,
     "started_at":  "2026-05-12T00:00:00Z",
+    "experiment":  "holtwick-voxel",
     "consecutive_no_progress":  0,
-    "experiment":  "07-fp-overnight-roguelike-3d",
     "last_error":  null,
     "status":  "exploring",
-    "last_outcome":  "P3.1 sprite generator tools/genSprites.mjs + npm run gen:sprites shipped; calls PixelLab /create-character-with-4-directions (1-call-per-NPC, 4 direction PNGs); smoke-tested through to credit gate (HTTP 402); follow-up P3.1b queued to run the batch once credits are replenished"
+    "last_outcome":  "Manual ship in commit 0bcdc0a — P4.0 mobile controls (joystick + interact button + hint) and P4.1 dialog modal SHELL done. P4.2 (WebLLM streaming wire-up) is the next pickup. P3.1b/P3.2/P3.3 BLOCKED on PixelLab credit top-up."
 }
