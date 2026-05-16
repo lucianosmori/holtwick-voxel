@@ -174,10 +174,101 @@
         cursor: pointer;
       }
       #dialog-close { background: #555; align-self: flex-end; }
+
+      /* Title screen — first thing the player sees */
+      #title-screen {
+        position: fixed; inset: 0;
+        background: radial-gradient(ellipse at center, #1d2230 0%, #0a0d14 80%);
+        z-index: 200;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        text-align: center;
+        padding: 20px;
+        transition: opacity 0.6s ease, transform 0.6s ease;
+      }
+      #title-screen.hidden {
+        opacity: 0;
+        transform: scale(1.05);
+        pointer-events: none;
+      }
+      #title-name {
+        font-size: clamp(36px, 7vw, 64px);
+        font-weight: 800;
+        color: #ffc850;
+        letter-spacing: 0.02em;
+        margin: 0;
+        text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      }
+      #title-sub {
+        font-size: clamp(14px, 2vw, 18px);
+        color: #b8c0d4;
+        max-width: 540px;
+        line-height: 1.5;
+        margin: 0;
+      }
+      #title-controls {
+        font-size: 13px;
+        color: #6b7590;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        margin: 8px 0 0;
+        line-height: 1.8;
+      }
+      #title-controls kbd {
+        display: inline-block;
+        padding: 1px 6px;
+        margin: 0 2px;
+        background: #2a2f3d;
+        border: 1px solid #4a5775;
+        border-bottom-width: 2px;
+        border-radius: 4px;
+        color: #e8e8e8;
+        font-size: 12px;
+      }
+      #title-start {
+        padding: 14px 36px;
+        background: #ffc850;
+        color: #1d2230;
+        font-weight: 800;
+        font-size: 18px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(255, 200, 80, 0.3);
+        transition: transform 0.1s ease, box-shadow 0.1s ease;
+        margin-top: 8px;
+      }
+      #title-start:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 24px rgba(255, 200, 80, 0.4);
+      }
+      #title-credit {
+        position: absolute;
+        bottom: 16px;
+        font-size: 11px;
+        color: #4a5468;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      }
+      #title-credit a { color: inherit; text-decoration: underline; }
     </style>
   </head>
   <body>
     <canvas id="game"></canvas>
+
+    <div id="title-screen">
+      <h1 id="title-name">Holtwick: The Voxel Tavern</h1>
+      <p id="title-sub">Wander the village. Talk to the regulars. Watch the sun cross the sky in two minutes flat.</p>
+      <button id="title-start" type="button">Enter the Village</button>
+      <div id="title-controls">
+        <kbd>WASD</kbd> / <kbd>↑↓←→</kbd> to move &nbsp; · &nbsp; <kbd>E</kbd> to talk &nbsp; · &nbsp; <kbd>Esc</kbd> to close dialog
+        <br />Touch: joystick (bottom-left) &nbsp; · &nbsp; TALK button (bottom-right)
+      </div>
+      <div id="title-credit">
+        <a href="https://github.com/lucianosmori/holtwick-voxel" target="_blank" rel="noopener">github.com/lucianosmori/holtwick-voxel</a>
+      </div>
+    </div>
 
     <div id="joystick"><div id="joystick-knob"></div></div>
     <button id="interact-btn" disabled>TALK</button>

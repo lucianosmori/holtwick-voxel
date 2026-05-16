@@ -10,6 +10,9 @@ import { bindDialog, openDialog, closeDialog } from "./ui/dialog";
 import { NPC_SPAWNS } from "./data/npcSpawns";
 import type { NpcDef } from "./data/npc.schema";
 import { DayNight } from "./world/dayNight";
+import { bindTitle } from "./ui/title";
+
+bindTitle();
 
 const { scene, camera, renderer, sun, hemi } = bootstrapScene("#game");
 const dayNight = new DayNight(sun, hemi);
