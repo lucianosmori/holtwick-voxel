@@ -67,7 +67,7 @@ try {
   console.log(`[validate:visual] canvas: ${JSON.stringify(canvasInfo)}`);
 
   const shotPath = `artifacts/screenshots/iter-${ITER}.png`;
-  await page.screenshot({ path: shotPath, fullPage: true });
+  await page.screenshot({ path: shotPath, fullPage: true, timeout: 60000 });
   console.log(`[validate:visual] screenshot -> ${shotPath}`);
 
   // Pixel-content assert: copy canvas#game (downsampled) into an offscreen
@@ -128,6 +128,58 @@ try {
       );
       failed = true;
     }
+  }
+
+  // Dialog wiring assert (P4.2): open the modal via the `?test=1` hook, send
+  // a message, and wait for a 3rd `.chat-msg` (greeting + user + assistant
+  // reply). Headless Chromium has no WebGPU, so `ensureEngine()` short-circuits
+  // and the reply comes from the scripted-bark fallback path — that exercises
+  // the wiring without depending on a 1GB model download.
+  try {
+    const hookReady = await page.evaluate(() => !!(window).__voxelTest__);
+    if (!hookReady) throw new Error("window.__voxelTest__ missing — main.ts `?test=1` gate?");
+    const openResult = await page.evaluate(() => {
+      try {
+        (window).__voxelTest__.openDialog();
+        return { ok: true, show: document.querySelector("#dialog-backdrop")?.classList.contains("show") };
+      } catch (e) {
+        return { ok: false, err: String(e?.stack || e) };
+      }
+    });
+    if (!openResult.ok) throw new Error(`openDialog() threw: ${openResult.err}`);
+    if (!openResult.show) throw new Error("openDialog() ran but dialog-backdrop.show not set");
+    // Set the input value + click via evaluate — Playwright's `click()` waits
+    // for the target to be topmost at the click point, and the full-viewport
+    // <canvas#game> intermittently confuses that check even though the modal
+    // is z-index:100 above it. Direct DOM dispatch sidesteps the issue.
+    await page.evaluate(() => {
+      const input = document.querySelector("#chat-input");
+      const btn = document.querySelector("#chat-send");
+      input.value = "Hello, Edda.";
+      btn.click();
+    });
+    await page.waitForFunction(
+      () => {
+        const msgs = document.querySelectorAll("#chat-messages .chat-msg");
+        if (msgs.length < 3) return false;
+        const last = msgs[msgs.length - 1];
+        const txt = (last?.textContent ?? "").trim();
+        return txt.length > 0 && txt !== "…";
+      },
+      { timeout: 30000, polling: 200 },
+    );
+    const dialogShot = `artifacts/screenshots/iter-${ITER}-dialog.png`;
+    await page.screenshot({ path: dialogShot, fullPage: true });
+    console.log(`[validate:visual] dialog screenshot -> ${dialogShot}`);
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !document.querySelector("#dialog-backdrop.show"),
+      { timeout: 3000 },
+    );
+    console.log("[validate:visual] dialog open/send/close OK");
+  } catch (err) {
+    console.error("[validate:visual] dialog wiring assert failed:", err?.message || err);
+    failed = true;
   }
 
   if (errors.length) {

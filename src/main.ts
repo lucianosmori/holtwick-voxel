@@ -7,6 +7,7 @@ import { BillboardNpc, NPC_Y } from "./entities/npc";
 import { setupJoystick } from "./input/joystick";
 import { bindInteract, updateInteract, type InteractableNpc } from "./ui/interact";
 import { bindDialog, openDialog, closeDialog } from "./ui/dialog";
+import { EDDA } from "./data/tavernCast";
 
 const { scene, camera, renderer } = bootstrapScene("#game");
 
@@ -33,8 +34,11 @@ const eddaNpc = new BillboardNpc({
 });
 scene.add(eddaNpc.mesh);
 
-const interactables: InteractableNpc[] = [
-  { id: "edda", name: "Edda the Innkeeper", mesh: eddaNpc.mesh },
+interface InteractableTavernNpc extends InteractableNpc {
+  def: typeof EDDA;
+}
+const interactables: InteractableTavernNpc[] = [
+  { id: EDDA.id, name: EDDA.name, mesh: eddaNpc.mesh, def: EDDA },
 ];
 
 setupJoystick((v) => {
@@ -46,11 +50,17 @@ bindDialog(() => {
 });
 
 bindInteract((npc) => {
-  openDialog({
-    npcName: npc.name,
-    greeting: "Welcome to the tavern, traveler. The voxel village is quiet today. (AI dialog wires in next iter — click Send to test the stub.)",
-  });
+  const tavernNpc = interactables.find((n) => n.id === npc.id);
+  if (tavernNpc) openDialog(tavernNpc.def);
 });
+
+// `?test=1` exposes a small hook for `scripts/validate-visual.mjs` to drive
+// the dialog without needing to position the player next to the NPC.
+if (typeof location !== "undefined" && new URLSearchParams(location.search).get("test") === "1") {
+  (window as unknown as { __voxelTest__?: { openDialog: () => void } }).__voxelTest__ = {
+    openDialog: () => openDialog(EDDA),
+  };
+}
 
 function updateCamera() {
   camera.position.copy(player.mesh.position).add(CAMERA_OFFSET);

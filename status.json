@@ -1,10 +1,10 @@
 {
     "updated_at":  "2026-05-16",
-    "iteration":  21,
+    "iteration":  22,
     "started_at":  "2026-05-12T00:00:00Z",
     "experiment":  "holtwick-voxel",
     "consecutive_no_progress":  0,
     "last_error":  null,
     "status":  "exploring",
-    "last_outcome":  "Manual ship in commit 0bcdc0a — P4.0 mobile controls (joystick + interact button + hint) and P4.1 dialog modal SHELL done. P4.2 (WebLLM streaming wire-up) is the next pickup. P3.1b/P3.2/P3.3 BLOCKED on PixelLab credit top-up."
+    "last_outcome":  "P4.2 done — dialog modal streams WebLLM tokens on Send (lazy-loaded Qwen2.5-1.5B) with `isWebGpuUsable()` precheck + scripted-bark fallback (Edda persona via new `src/data/tavernCast.ts`). Validate-visual extended with `?test=1` window hook to open the dialog, dispatch Send via `evaluate`, and capture iter-${ITER}-dialog.png. Build + visual gate green. Next: P4.3 TTS or jump to P4.4 day/night (P3.x still BLOCKED on PixelLab credit top-up)."
 }

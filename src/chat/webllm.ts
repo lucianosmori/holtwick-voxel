@@ -124,9 +124,37 @@ interface WebLlmModule {
   ) => Promise<MlcEngine>;
 }
 
+interface GpuLike {
+  requestAdapter?: () => Promise<unknown>;
+}
+interface NavigatorWithGpu extends Navigator {
+  gpu?: GpuLike;
+}
+
+async function isWebGpuUsable(): Promise<boolean> {
+  if (typeof navigator === "undefined") return false;
+  const gpu = (navigator as NavigatorWithGpu).gpu;
+  if (!gpu || typeof gpu.requestAdapter !== "function") return false;
+  try {
+    const adapter = await gpu.requestAdapter();
+    return adapter != null;
+  } catch {
+    return false;
+  }
+}
+
 export async function ensureEngine(): Promise<MlcEngine | null> {
   if (engine) return engine;
   if (loading) return null;
+  // Cheap early check: WebGPU is required by MLC. Headless Chromium exposes a
+  // `navigator.gpu` object whose `requestAdapter()` returns null — skip the
+  // multi-MB dynamic import (and the model fetch it triggers) when the
+  // fallback is inevitable.
+  if (!(await isWebGpuUsable())) {
+    lastError = "WebGPU not available in this browser";
+    setStatus({ kind: "error", text: "WebGPU unavailable — scripted barks only" });
+    return null;
+  }
   loading = true;
   setStatus({ kind: "loading", text: "loading model 0%" });
   try {

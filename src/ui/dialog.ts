@@ -1,14 +1,24 @@
-// NPC dialog modal. Stage 1: opens with a canned greeting; WebLLM
-// streaming wires in P4.2. DOM lives in index.html (#dialog-backdrop +
-// children). Open/close keyboard handling (Esc) lives here.
+// NPC dialog modal. On open, shows the NPC's name + a random idle bark as
+// the greeting. On Send, lazy-loads WebLLM (Qwen2.5-1.5B-Instruct, ~1GB)
+// and streams the assistant reply token-by-token into the chat bubble.
+// When WebGPU is unavailable (headless validator, Firefox, locked-down
+// browsers) `ensureEngine()` returns null fast and we fall back to a
+// random scripted bark so the dialog still produces a reply.
 
-export interface DialogContent {
-  npcName: string;
-  greeting: string;
-}
+import type { NpcDef } from "../data/npc.schema";
+import {
+  ensureEngine,
+  getStatus,
+  isReady,
+  lastInitError,
+  streamReply,
+  subscribeStatus,
+} from "../chat/webllm";
 
 let bound = false;
 let onCloseCb: (() => void) | null = null;
+let currentNpc: NpcDef | null = null;
+let streaming = false;
 
 function $(id: string): HTMLElement {
   const el = document.getElementById(id);
@@ -16,14 +26,20 @@ function $(id: string): HTMLElement {
   return el;
 }
 
+function setStatusText(text: string): void {
+  const el = document.getElementById("dialog-status");
+  if (el) el.textContent = text || "idle";
+}
+
 export function bindDialog(onClose: () => void): void {
   if (bound) return;
   bound = true;
   onCloseCb = onClose;
 
+  subscribeStatus((s) => setStatusText(s.text));
+
   $("dialog-close").addEventListener("click", () => closeDialog());
 
-  // Esc closes the dialog when open.
   window.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && $("dialog-backdrop").classList.contains("show")) {
       e.preventDefault();
@@ -31,32 +47,26 @@ export function bindDialog(onClose: () => void): void {
     }
   });
 
-  // Send button is a stub for now — P4.2 will wire WebLLM streaming here.
   $("chat-send").addEventListener("click", () => {
-    const input = $("chat-input") as HTMLInputElement;
-    const text = input.value.trim();
-    if (!text) return;
-    appendMessage("user", text);
-    input.value = "";
-    appendMessage(
-      "assistant",
-      "(AI dialog not wired yet — P4.2 will lazy-load Qwen2.5-1.5B via WebLLM on first message. Top up PixelLab credits to also unblock real NPC sprites.)",
-    );
+    void handleSend();
   });
 
   $("chat-input").addEventListener("keydown", (e) => {
     if ((e as KeyboardEvent).key === "Enter") {
       e.preventDefault();
-      ($("chat-send") as HTMLButtonElement).click();
+      void handleSend();
     }
   });
 }
 
-export function openDialog(content: DialogContent): void {
-  $("dialog-name").textContent = content.npcName;
+export function openDialog(npc: NpcDef): void {
+  currentNpc = npc;
+  $("dialog-name").textContent = npc.name;
   const messages = $("chat-messages");
   messages.innerHTML = "";
-  appendMessage("assistant", content.greeting);
+  const greeting = pickRandom(npc.barks_idle) ?? `I am ${npc.name}.`;
+  appendMessage("assistant", greeting);
+  setStatusText(getStatus().text);
   $("dialog-backdrop").classList.add("show");
   ($("chat-input") as HTMLInputElement).focus();
 }
@@ -70,11 +80,65 @@ export function isDialogOpen(): boolean {
   return $("dialog-backdrop").classList.contains("show");
 }
 
-function appendMessage(role: "user" | "assistant", text: string): void {
+async function handleSend(): Promise<void> {
+  if (!currentNpc || streaming) return;
+  const input = $("chat-input") as HTMLInputElement;
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  appendMessage("user", text);
+
+  const npc = currentNpc;
+  const send = $("chat-send") as HTMLButtonElement;
+  send.disabled = true;
+  streaming = true;
+  const bubble = appendMessage("assistant", "…");
+
+  try {
+    const engine = await ensureEngine();
+    if (!engine || !isReady()) {
+      const fallback = pickRandom(npc.barks_idle) ?? "...";
+      const reason = lastInitError() ? " (scripted bark — WebLLM unavailable)" : "";
+      bubble.textContent = `${fallback}${reason}`;
+      scrollToBottom();
+      return;
+    }
+    bubble.textContent = "";
+    await streamReply(npc, text, {
+      onToken: (acc) => {
+        bubble.textContent = acc;
+        scrollToBottom();
+      },
+      onDone: (final) => {
+        bubble.textContent = final;
+        scrollToBottom();
+      },
+      onError: (msg) => {
+        bubble.textContent = `(error: ${msg})`;
+      },
+    });
+  } finally {
+    streaming = false;
+    send.disabled = false;
+  }
+}
+
+function pickRandom<T>(arr: readonly T[]): T | undefined {
+  if (arr.length === 0) return undefined;
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function scrollToBottom(): void {
+  const messages = $("chat-messages");
+  messages.scrollTop = messages.scrollHeight;
+}
+
+function appendMessage(role: "user" | "assistant", text: string): HTMLElement {
   const messages = $("chat-messages");
   const wrap = document.createElement("div");
   wrap.className = `chat-msg chat-msg-${role}`;
   wrap.textContent = text;
   messages.appendChild(wrap);
   messages.scrollTop = messages.scrollHeight;
+  return wrap;
 }
