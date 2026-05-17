@@ -1,16 +1,18 @@
 # Ralph-loop runner (PowerShell). Windows-native alternative to loop.sh.
 # Defaults: bounded iterations, timebox, Telegram pings on start/end/blocked.
 #
-# Usage:
-#   .\loop.ps1                                   # 20 iterations, 60-min timebox
+# Defaults sized for the holtwick-voxel-nightly scheduled task (2026-05-16):
+# 28 iters / 480 min (8h) — fits the P6 + P7 + P8 backlog with comfortable
+# overshoot margin. Override per-invocation when running manually:
+#   .\loop.ps1                                   # 28 iter, 480-min timebox
 #   .\loop.ps1 -MaxIter 10 -TimeboxMin 30
 #
 # Requires: claude CLI on PATH. Optional: TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID
 # in env (or $env:USERPROFILE\.claude\channels\telegram\.env) for pings.
 
 param(
-    [int]$MaxIter = 20,
-    [int]$TimeboxMin = 60
+    [int]$MaxIter = 28,
+    [int]$TimeboxMin = 480
 )
 
 $ErrorActionPreference = 'Continue'

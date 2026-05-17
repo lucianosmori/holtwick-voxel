@@ -320,26 +320,256 @@ the priority order.
   **Done when:** Playwright presses backtick, asserts `#fps-overlay`
   becomes visible AND its text contains a numeric fps reading > 0.
 
-- [ ] **P6.12** README rewrite + screenshot gallery. Files: `README.md`,
-  `artifacts/screenshots/` (4 named screenshots for the gallery).
+- [ ] **P6.12** README v1 + showcase screenshots. Files: `README.md`,
+  `scripts/capture-showcase.mjs` (new), `artifacts/screenshots/`.
 
   **Update README:**
-  - Status table: tick everything P6.1 through P6.11 (assuming they all
-    landed)
+  - Status table: tick everything P6.1 through P6.11
   - New `## Gameplay` section: quests, inventory, save/load mechanics
-    explained briefly
+    briefly explained
   - New `## Screenshots` section linking 4 PNGs:
     `artifacts/screenshots/showcase-village-day.png`,
     `showcase-dialog.png`, `showcase-inventory.png`,
-    `showcase-night-lanterns.png` — produce these via Playwright in
-    this iter (extend `validate-visual.mjs` with a `--showcase` mode
-    or write a dedicated `scripts/capture-showcase.mjs`)
-  - Flip `status.json` to `"status": "graduated"` after this iter
-    commits — that stops the loop per the abandon/graduation signal
+    `showcase-night-lanterns.png` — produced via a new
+    `scripts/capture-showcase.mjs` that boots vite preview + visits
+    `?test=1` + `?test=1&dayNight=0.85` + drives the dialog + the
+    inventory modal, capturing each scene to a named file.
 
-  **Done when:** README has the gameplay section + 4 showcase images
-  exist + status.json reflects graduated. The loop will exit cleanly
-  on the next iter check.
+  **Do NOT flip `status.json` to graduated yet.** Graduation moved to
+  **P8.8** so the loop keeps mining P7 + P8 work this burn.
+
+  **Done when:** README has the gameplay section, 4 named showcase
+  PNGs exist in `artifacts/screenshots/`, capture script is committed.
+
+## Priority 7 — Overnight burn (continued): content + polish layer
+
+Stack-locked 2026-05-16. Layers on top of P6 once gameplay loop ships.
+Each iter is locked and self-contained — no "or" choices. Items chosen
+to add SURFACE AREA (more content + buildings + NPCs + quests) and
+POLISH (settings, idle barks, minimap) without introducing new
+mechanics that need design decisions overnight.
+
+- [ ] **P7.1** More buildings: blacksmith forge, village well, 2
+  market stalls. Files: `src/world/buildings.ts` (new), called from
+  `src/world/village.ts` after `addTavern`.
+
+  **Blacksmith forge** at `(originX=18, originZ=20, doorwayZ=22)`:
+  6×6 footprint, plank walls, 1-cell doorway on east side, stone
+  anvil (single `VOXEL_STONE` at center).
+
+  **Village well** at `(centerX=46, centerZ=30)`: circular ring of
+  `VOXEL_STONE` (radius 2, 1 voxel tall at y=1) with `VOXEL_WATER`
+  in the center hole (1×1 at y=0).
+
+  **Market stalls** at `(20, 36)` and `(24, 36)`: 3×2 footprint each,
+  4 plank corner posts (y=1..2) supporting a 3×2 plank canopy at y=3.
+  No walls, just posts + roof. Open-sided.
+
+  **Done when:** Playwright screenshot shows 4 new structures distinct
+  from tavern; pixel-content bin count increases by >50 (more
+  voxel surface variety).
+
+- [ ] **P7.2** 5 more tavern NPCs (lifted from existing
+  `data/npcs/*.json` corpus). Files: extend `src/data/tavernCast.ts`
+  + `src/data/npcSpawns.ts`. Pick 5 NPCs from the 31-NPC corpus whose
+  role fits a village (skip "Goblin Berserker" etc.). Suggested:
+  `dorin_the_miner`, `hilda_the_herbalist`, `karsten_the_smith`,
+  `ronan_the_messenger`, `petra_the_baker` — or substitute equivalents
+  if IDs don't exist in the corpus.
+
+  **Spawn positions** (use new buildings from P7.1):
+  - smith → at blacksmith doorway `(21, 22)`
+  - well-keeper → next to well `(46, 28)`
+  - merchant1 → at market stall 1 `(20, 36)`
+  - merchant2 → at market stall 2 `(24, 36)`
+  - wanderer → on plaza `(28, 32)`
+
+  **Done when:** Playwright `__voxelTest__.getNpcCount()` returns 12
+  (was 7 → +5 = 12).
+
+- [ ] **P7.3** Minimap HUD (top-left, 150×150). Files:
+  `src/ui/minimap.ts` (new), HUD div in `index.html` + CSS.
+
+  **Render:** 2D canvas, world-to-pixel scale 1 voxel = 2px. Dark
+  background `#1a1f2c`. Plot: tavern outline (orange rect), plaza
+  (gray rect), road network (dim dirt color), player (yellow dot),
+  NPCs (cyan dots), items (small gold dots), lanterns (orange when
+  night). Re-draw every 10 frames.
+
+  **Done when:** Playwright screenshot shows a 150×150 div in the
+  top-left containing visible distinct dots/rects.
+
+- [ ] **P7.4** Settings menu (gear icon top-right, modal). Files:
+  `src/ui/settings.ts` (new), gear icon in `index.html` top-right
+  corner (32×32 emoji or SVG).
+
+  **Modal contents:**
+  - Master volume slider (binds to P6.8's gain node, persists to
+    `holtwick-voxel:audio:volume`)
+  - Day-length slider 60-1800 seconds (binds to `dayNight.cycleSeconds`,
+    persists to `holtwick-voxel:dayLength`)
+  - "Reset save" button (with confirm prompt — clears
+    `holtwick-voxel:save:v1`, reloads page)
+
+  Click gear opens modal; Escape or click-outside closes.
+
+  **Done when:** Playwright clicks the gear, asserts modal visible
+  with 2 sliders + 1 button.
+
+- [ ] **P7.5** Animated NPC idle barks (proximity-triggered). Files:
+  `src/ui/npcBark.ts` (new), called per-frame from `main.ts`.
+
+  **Behavior:** for each NPC within 8 voxels of the player, every
+  15-30 seconds (random per-NPC), pick a random string from the
+  NPC's `barks_idle[]` and render it as floating text above the NPC
+  for 4 seconds (CSS-positioned div with `transform: translate(...)`
+  mapping world→screen coords each frame; fade-in 200ms, hold 3500ms,
+  fade-out 300ms). Skip if player is in dialog with that NPC.
+
+  No LLM call — pure data from `barks_idle` in `npcSpawns.ts` /
+  `tavernCast.ts`.
+
+  **Done when:** Playwright walks player to within 8 voxels of an
+  NPC via `__voxelTest__.movePlayerTo()`, waits 30s, asserts at
+  least one `.npc-bark` element appeared in the DOM with non-empty
+  text content matching one of the NPC's idle barks.
+
+- [ ] **P7.6** Quest 3 — "Visit the well" (talk-to type). Files:
+  add to `src/data/quests.ts`, giver = well-keeper NPC from P7.2.
+  `id: "well_visit"`, trigger `talk_to` well-keeper from inside a
+  3-cell radius of well center, reward 5 gold.
+
+  Demonstrates that any NPC can be a quest-giver, not just Edda.
+
+  **Done when:** Playwright accepts quest from well-keeper, then
+  re-opens dialog, asserts auto-completion + 5 gold awarded.
+
+- [ ] **P7.7** Quest 4 — "Collect 5 gold coins" (collect type).
+  Files: add to `src/data/quests.ts`, giver = Bren the bard,
+  `id: "bren_5_coins"`, trigger collect 5 `gold_coin`, reward 1
+  `health_potion`.
+
+  Demonstrates non-gold rewards (item rewards land in inventory).
+  Extends P6.5's `reward` schema to support `{ items?: Array<{ item_id, count }> }`.
+
+  **Done when:** Playwright accepts Bren's quest, pushes 5 gold_coin
+  via `__voxelTest__.addItem`, opens dialog, asserts quest completion
+  + 1 health_potion in inventory.
+
+- [ ] **P7.8** README v2 + GRADUATION FLIP. Files: `README.md`,
+  `status.json`.
+
+  **Update README:**
+  - Status table fully ticked (everything through P7.7)
+  - Roster section: list all 12 NPCs + their roles
+  - Controls section: WASD, mouse, E (interact), I (inventory),
+    ` (FPS overlay), Escape (close), gear icon (settings)
+  - Recap of quest count + item count + building count
+  - Link to live demo + screenshot gallery
+
+  **Flip `status.json` to `"status": "graduated"`** — this halts the
+  loop per the abandon/graduation signal.
+
+  **Done when:** status.json reflects graduated AND the README has
+  the full controls + roster sections. On the next iter check, loop
+  exits cleanly.
+
+## Priority 8 — Extra overshoot (only mined if P6 + P7 land early)
+
+Stack-locked 2026-05-16. Pure content/visual/HUD additions, zero new
+mechanics. Each safe to skip — none are graduation-blocking. If ralph
+finishes P7.8 (graduation), the loop stops and P8 stays unmined.
+
+- [ ] **P8.1** Decorative props: barrels + crates instanced near
+  buildings. Files: `src/world/props.ts` (new), instanced cubes
+  with plank texture, 20 props seeded around tavern/forge/well/stalls.
+  Skip cells on roads, in plaza center, inside buildings.
+
+  **Done when:** Playwright screenshot shows visible plank barrels/crates
+  adjacent to at least 2 of the 4 new building locations.
+
+- [ ] **P8.2** Toast notification system (animated bottom-center).
+  Files: `src/ui/toast.ts` (new), CSS in `index.html`. Replaces the
+  ad-hoc "+1 Iron Ore" text spam from P6.3 with a styled slide-in
+  toast: 280px wide, dark background, white text, fades from
+  `transform: translateY(40px)` to `translateY(0)` over 250ms, holds
+  2.5s, fades back out 250ms. Queue: max 3 visible at once, stack
+  vertically.
+
+  **Done when:** Playwright pushes 4 events via `__voxelTest__.toast("test")`
+  in quick succession, asserts 3 visible `.toast` elements at any
+  given moment, 4th appears after the first fades.
+
+- [ ] **P8.3** Time-of-day HUD label (under minimap). Files: extend
+  `src/ui/hud.ts`. Shows "Morning" (0.0-0.25), "Noon" (0.25-0.5),
+  "Dusk" (0.5-0.75), "Night" (0.75-1.0) based on `dayNight.phase`.
+  Update every 30 frames.
+
+  **Done when:** Playwright loads `?dayNight=0.85`, asserts HUD shows
+  "Night".
+
+- [ ] **P8.4** Animated water + chimney smoke (combined). Files:
+  `src/world/waterAnim.ts` (new), `src/render/particles.ts` (new),
+  hooks into main RAF loop.
+
+  **Water:** per-frame Y-jitter on water `InstancedMesh` instances:
+  `y = baseY + sin((t + i * 0.3) * 1.5) * 0.05`. Subtle bob.
+
+  **Chimney smoke:** Sprite-batched 16 fade-up gray sprites above
+  the tavern roof at `(32, 5, 17)` (tavern center top). Each sprite
+  lifecycles 4s: spawn at base, drift up + slightly outward, scale
+  up 0.5→1.5x, opacity 0.7→0. Recycle.
+
+  **Done when:** Playwright captures 2 screenshots 1s apart; asserts
+  at least 3 pixels at chimney coord differ between frames (smoke
+  motion) AND at least 1 water voxel y-position differs.
+
+- [ ] **P8.5** Tavern sign + lamp posts. Files:
+  `src/world/decorations.ts` (new).
+
+  **Tavern sign:** billboard plane (1.5×0.6) at tavern doorway
+  height 3, with a canvas-rendered "The Holtwick Tavern" text on a
+  wood-grain background. Faces south.
+
+  **Lamp posts:** 4 instanced cubes (1×4×1) along the main road,
+  spaced every 8 voxels. Each lamp gets a small PointLight at the
+  top (color `0xfff0a0`, intensity ramping with `dayNight.phase`
+  like P6.10's tavern lanterns).
+
+  **Done when:** Playwright screenshot at night shows the tavern
+  sign legible AND warm light pools from the 4 lamp posts along
+  the road.
+
+- [ ] **P8.6** 4 more item types: `bread` (heal 10), `apple`
+  (heal 5), `wooden_sword` (cosmetic, no effect yet), `wooden_shield`
+  (cosmetic). Files: extend `src/data/items.ts`, seed 3 of each
+  type in world via `village.ts` placement.
+
+  **Done when:** Playwright `__voxelTest__.getItemDefCount()` returns
+  7 (was 3 → +4 = 7); inventory modal renders all 7 item types if
+  collected.
+
+- [ ] **P8.7** 3 more quests: deliver-bread (giver: Edda, deliver 1
+  bread to baker), talk-to-all (giver: Bren, trigger: talk-to all
+  12 NPCs), find-the-spring (giver: well-keeper, trigger: walk into
+  a specific hidden cell at the village edge). Files: extend
+  `src/data/quests.ts`, may require extending trigger union to add
+  `{ type: "deliver"; item_id: string; npc_id: string }` and
+  `{ type: "walk_to"; cell: {x:number; z:number}; radius: number }`.
+
+  **Done when:** Playwright accepts each new quest, satisfies its
+  trigger via test hooks, asserts completion.
+
+- [ ] **P8.8** Keybind help modal (`?` key opens). Files:
+  `src/ui/keyhelp.ts` (new). Modal lists every keyboard control
+  with a brief description: WASD (move), Mouse (look — currently
+  fixed; placeholder for future), E (interact with NPC), I
+  (inventory), ` (FPS overlay), Escape (close modal), Gear icon
+  (settings). `?` keydown opens (gated by `isEditableTarget`),
+  Escape closes.
+
+  **Done when:** Playwright presses `?`, asserts modal visible with
+  ≥6 keybind entries.
 
 ## Done (struck through, kept for audit)
 
