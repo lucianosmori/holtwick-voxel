@@ -605,28 +605,41 @@
         white-space: normal;
       }
 
-      /* Pickup toast — ad-hoc bottom-center text for P6.3; replaced by the
-         styled queue in P8.2. */
-      #pickup-toast {
+      /* P8.2 toast notification stack — bottom-center queue, max 3 visible
+         at a time, additional pushes wait their turn in src/ui/toast.ts. */
+      #toast-container {
         position: fixed;
-        bottom: 64px;
+        bottom: 32px;
         left: 50%;
-        transform: translateX(-50%) translateY(20px);
-        padding: 8px 18px;
-        background: rgba(15, 18, 26, 0.9);
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        pointer-events: none;
+        z-index: 8;
+      }
+      .toast {
+        width: 280px;
+        box-sizing: border-box;
+        padding: 10px 14px;
+        background: rgba(15, 18, 26, 0.92);
         border: 1px solid rgba(255, 200, 80, 0.45);
         border-radius: 6px;
-        color: #ffe9a8;
+        color: #ffffff;
         font-size: 14px;
         font-family: ui-monospace, "SF Mono", Menlo, monospace;
-        pointer-events: none;
+        text-align: center;
+        line-height: 1.35;
         opacity: 0;
-        transition: opacity 0.25s ease, transform 0.25s ease;
-        z-index: 6;
+        transform: translateY(40px);
+        transition: opacity 250ms ease, transform 250ms ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        will-change: opacity, transform;
       }
-      #pickup-toast.show {
+      .toast.show {
         opacity: 1;
-        transform: translateX(-50%) translateY(0);
+        transform: translateY(0);
       }
     </style>
   </head>
@@ -689,7 +702,7 @@
       </div>
     </div>
 
-    <div id="pickup-toast"></div>
+    <div id="toast-container"></div>
 
     <div id="npc-bark-layer"></div>
 

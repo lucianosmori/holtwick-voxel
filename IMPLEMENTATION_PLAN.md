@@ -643,17 +643,32 @@ at P9.6.
   stalls} via inflated-bbox cell tests, warps player near a tavern prop
   and captures `iter-${ITER}-props.png`. Build green 523.79 kB.)
 
-- [ ] **P8.2** Toast notification system (animated bottom-center).
-  Files: `src/ui/toast.ts` (new), CSS in `index.html`. Replaces the
-  ad-hoc "+1 Iron Ore" text spam from P6.3 with a styled slide-in
-  toast: 280px wide, dark background, white text, fades from
-  `transform: translateY(40px)` to `translateY(0)` over 250ms, holds
-  2.5s, fades back out 250ms. Queue: max 3 visible at once, stack
-  vertically.
-
-  **Done when:** Playwright pushes 4 events via `__voxelTest__.toast("test")`
-  in quick succession, asserts 3 visible `.toast` elements at any
-  given moment, 4th appears after the first fades.
+- [x] ~~**P8.2** Toast notification system (animated bottom-center).~~
+  (iter 45 — `src/ui/toast.ts` exports `pushToast(text)` +
+  `visibleToastCount/queuedToastCount`. Internal state holds at most
+  `MAX_VISIBLE=3` active `.toast` divs at a time; further pushes wait
+  in `queue: string[]` and spawn from `drain()` once an older toast
+  completes its `SHOW_MS=2500` hold + `FADE_MS=250` fade-out. `spawn`
+  appends a fresh `.toast` div into `#toast-container`, forces a layout
+  flush (`void el.offsetWidth`) so the CSS transition runs from the
+  initial state, then adds `.show` to drive opacity 0→1 +
+  `translateY(40px→0)` over 250ms. `beginDismiss` removes `.show`,
+  schedules the actual DOM removal `FADE_MS` later, then calls
+  `drain()` so the queue advances exactly once per slot freed.
+  `index.html` replaces the old `#pickup-toast` div + CSS with
+  `#toast-container` (bottom-center flex column, gap 8px, z-index 8,
+  `pointer-events: none`) + `.toast`/`.toast.show` rules matching the
+  spec (280px wide, dark bg, white text, monospace, amber border,
+  shadow). `src/main.ts` imports `pushToast`, removes the ad-hoc
+  `showPickupToast` helper + its `toastTimer`, and on a successful
+  `addItem` calls `pushToast("+N Item Name")`. `__voxelTest__` gains
+  `toast(text)` so the gate can drive the queue directly.
+  `scripts/validate-visual.mjs` P8.2 block pushes 4 toasts via the
+  hook, asserts exactly 3 `.toast` elements exist (first 3 visible,
+  4th queued), waits up to 4.5s for the 4th to materialise after the
+  first fade-out completes, asserts final count is ≤3, captures
+  `iter-${ITER}-toast.png`. Build green 524.25 kB (+0.46 kB vs iter
+  44's 523.79 kB).
 
 - [ ] **P8.3** Time-of-day HUD label (under minimap). Files: extend
   `src/ui/hud.ts`. Shows "Morning" (0.0-0.25), "Noon" (0.25-0.5),

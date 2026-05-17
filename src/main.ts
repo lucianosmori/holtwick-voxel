@@ -18,6 +18,7 @@ import {
   type BarkNpc,
 } from "./ui/npcBark";
 import { bindInventory, openInventory, closeInventory, isInventoryOpen } from "./ui/inventory";
+import { pushToast } from "./ui/toast";
 import { NPC_SPAWNS } from "./data/npcSpawns";
 import type { NpcDef } from "./data/npc.schema";
 import { DayNight } from "./world/dayNight";
@@ -195,19 +196,6 @@ const minimap = mountMinimap({ x: gridOffset.x, z: gridOffset.z });
 
 const PICKUP_DIST_SQ = (PICKUP_RADIUS + PLAYER_HALF) * (PICKUP_RADIUS + PLAYER_HALF);
 
-let toastTimer: number | null = null;
-function showPickupToast(text: string): void {
-  const el = document.getElementById("pickup-toast");
-  if (!el) return;
-  el.textContent = text;
-  el.classList.add("show");
-  if (toastTimer !== null) window.clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => {
-    el.classList.remove("show");
-    toastTimer = null;
-  }, 2500);
-}
-
 function checkPickups(): void {
   const px = player.mesh.position.x;
   const pz = player.mesh.position.z;
@@ -224,7 +212,7 @@ function checkPickups(): void {
     worldItems[i] = null;
     markPicked(i);
     if (def && result && result.delta > 0) {
-      showPickupToast(`+${result.delta} ${def.name}`);
+      pushToast(`+${result.delta} ${def.name}`);
     }
   }
 }
@@ -319,6 +307,7 @@ if (isTestRun) {
     getBarkCount: () => number;
     getBarkTexts: () => string[];
     getPropPositions: () => Array<{ type: string; cellX: number; cellZ: number; x: number; z: number }>;
+    toast: (text: string) => void;
   }
   const hook: VoxelTestHook = {
     openDialog: (npcId?: string) => {
@@ -390,6 +379,7 @@ if (isTestRun) {
         x: gridOffset.x + p.cellX + 0.5,
         z: gridOffset.z + p.cellZ + 0.5,
       })),
+    toast: (text: string) => pushToast(text),
   };
   (window as unknown as { __voxelTest__?: VoxelTestHook }).__voxelTest__ = hook;
 }

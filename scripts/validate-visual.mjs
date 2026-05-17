@@ -1158,6 +1158,63 @@ try {
     failed = true;
   }
 
+  // P8.2 toast queue: push 4 toasts in quick succession via the test hook,
+  // assert at most 3 `.toast` elements exist while the queue holds the 4th,
+  // then wait for the 4th to spawn after the first dismiss completes.
+  try {
+    await page.evaluate(() => {
+      const hook = (window).__voxelTest__;
+      hook.toast("toast-1");
+      hook.toast("toast-2");
+      hook.toast("toast-3");
+      hook.toast("toast-4");
+    });
+    // Give the spawn microtasks + initial transition a moment to settle.
+    await wait(120);
+    const initialTexts = await page.evaluate(() =>
+      Array.from(document.querySelectorAll(".toast")).map(
+        (el) => (el.textContent ?? "").trim(),
+      ),
+    );
+    if (initialTexts.length !== 3) {
+      throw new Error(
+        `expected 3 .toast elements while 4th is queued, got ${initialTexts.length}: ${JSON.stringify(initialTexts)}`,
+      );
+    }
+    if (!initialTexts.includes("toast-1") || initialTexts.includes("toast-4")) {
+      throw new Error(
+        `unexpected toast set; expected first 3 visible + 4th queued, got ${JSON.stringify(initialTexts)}`,
+      );
+    }
+    // Wait for the 4th to materialise once the first toast finishes its
+    // 2500ms hold + 250ms fade-out cycle. 4.5s ceiling covers the cycle plus
+    // CI scheduler jitter.
+    await page.waitForFunction(
+      () =>
+        Array.from(document.querySelectorAll(".toast")).some(
+          (el) => (el.textContent ?? "").trim() === "toast-4",
+        ),
+      { timeout: 4500, polling: 100 },
+    );
+    const finalCount = await page.evaluate(
+      () => document.querySelectorAll(".toast").length,
+    );
+    if (finalCount > 3) {
+      throw new Error(
+        `expected ≤3 .toast elements after queue drains, got ${finalCount}`,
+      );
+    }
+    const toastShot = `artifacts/screenshots/iter-${ITER}-toast.png`;
+    await page.screenshot({ path: toastShot, fullPage: true });
+    console.log(`[validate:visual] toast screenshot -> ${toastShot}`);
+    console.log(
+      `[validate:visual] P8.2 toast OK (3 visible while queued, 4th appeared after first fade, final=${finalCount})`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] toast assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);
