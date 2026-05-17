@@ -50,6 +50,7 @@ import { WaterAnimator } from "./world/waterAnim";
 import { mountMinimap } from "./ui/minimap";
 import { bindSettings } from "./ui/settings";
 import { buildLampPosts, buildTavernSign, updateLampPosts } from "./world/decorations";
+import { buildHearthLight } from "./world/tavernInterior";
 
 bindTitle();
 mountHud();
@@ -202,6 +203,12 @@ scene.add(lampPostMesh);
 for (const l of lampPosts) scene.add(l.light);
 updateLampPosts(lampPosts, dayNight.currentPhase);
 
+// P9.1 tavern hearth — constant warm point light radiating into the
+// interior so the bar/hearth area reads as lit regardless of time of day.
+// Hearth voxels themselves are stamped by world/tavernInterior in village.ts.
+const hearthLight = buildHearthLight(gridOffset);
+scene.add(hearthLight);
+
 // P8.4 chimney smoke + water bob. Smoke base = tavern roof centre in world
 // coords ((32, 5, 17) in grid) lifted onto worldMesh's gridOffset; emitter
 // recycles 16 sprites on a 4s lifecycle. Water animator binds to the
@@ -344,6 +351,8 @@ if (isTestRun) {
     hasTavernSign: () => boolean;
     getTalkedToCount: (questId: string) => number;
     triggerOnTalkTo: (npcId: string) => void;
+    getPointLightCount: () => number;
+    getHearthLightPosition: () => { x: number; y: number; z: number };
   }
   const hook: VoxelTestHook = {
     openDialog: (npcId?: string) => {
@@ -431,6 +440,18 @@ if (isTestRun) {
     toast: (text: string) => pushToast(text),
     getSmokeSpritePositions: () => smoke.getSpritePositions(),
     getWaterInstanceYs: () => waterAnim.getInstanceYs(),
+    getPointLightCount: () => {
+      let n = 0;
+      scene.traverse((obj) => {
+        if ((obj as THREE.Object3D & { isPointLight?: boolean }).isPointLight) n++;
+      });
+      return n;
+    },
+    getHearthLightPosition: () => ({
+      x: hearthLight.position.x,
+      y: hearthLight.position.y,
+      z: hearthLight.position.z,
+    }),
   };
   (window as unknown as { __voxelTest__?: VoxelTestHook }).__voxelTest__ = hook;
 }

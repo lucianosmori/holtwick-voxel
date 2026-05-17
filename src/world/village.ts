@@ -7,6 +7,7 @@ import {
   VoxelGrid,
 } from "./voxel";
 import { addTavern, TAVERN_WALL_HEIGHT } from "./tavern";
+import { addTavernInterior } from "./tavernInterior";
 import { addBuildings, BUILDINGS_MAX_Y } from "./buildings";
 import { ITEMS, SEEDED_ITEM_IDS, SEEDED_PER_TYPE } from "../data/items";
 
@@ -139,6 +140,10 @@ export function buildVillage(seed: number = 1): VoxelGrid {
     originZ: TAVERN_ORIGIN_Z,
     doorwayX: TAVERN_DOORWAY_X,
   });
+
+  // P9.1 — interior dressing (bar counter + hearth + tables + stools).
+  // Stamped after the walls so it lands on the plank floor inside the ring.
+  addTavernInterior(grid);
 
   // P7.1 — blacksmith forge, village well, 2 market stalls. Stamped after the
   // tavern so any overlap with the plaza/road tiles gets overwritten by the

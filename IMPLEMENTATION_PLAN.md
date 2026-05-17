@@ -848,9 +848,36 @@ risk, mined ONLY after P8.8 lands (loop continues past P8 because P7.8
 no longer flips graduation). Final task **P9.6** flips status to
 `graduated`.
 
-- [ ] **P9.1** Tavern interior dressing — bar counter + 2 tables +
-  4 stools + 1 hearth. Files: `src/world/tavernInterior.ts` (new),
-  called from `src/world/village.ts` after `addTavern`.
+- [x] ~~**P9.1** Tavern interior dressing — bar counter + 2 tables +
+  4 stools + 1 hearth.~~ (iter 52 — `src/world/tavernInterior.ts`
+  `addTavernInterior(grid)` stamps 11 cells at y=1 inside the tavern's
+  6×4 interior: bar counter (29..31, 15) as `VOXEL_PLANKS`, hearth
+  (32,15)+(33,15) as `VOXEL_STONE`, 2 tables (30,17)+(32,17) as
+  `VOXEL_PLANKS`, 4 stools (29,17)+(31,17)+(31,17)+(33,17) as
+  `VOXEL_DIRT` — plan's duplicate (31,17) lands as a no-op via the
+  "skip if cell ≠ empty" guard, net 3 stool voxels. Row z=16 stays
+  clear so the player can step around the tables and reach the bar;
+  the east-side cell (34,17) also stays clear so the doorway path
+  isn't fully walled by table+stool. `buildHearthLight(gridOffset)`
+  exports a `PointLight(0xff8030, 0.9, 4)` at world
+  `(gridOffset.x + 32 + 1.0, 1.5, gridOffset.z + 15 + 1.0)` per spec
+  (`32.5 + 0.5` reads as one cell-and-a-half east of the hearth's
+  west block — sits in the open interior just south-east of the hearth,
+  so warmth radiates into the room rather than getting buried inside
+  a solid voxel). `village.ts` calls `addTavernInterior(grid)` right
+  after `addTavern(...)` and before `addBuildings(grid)`. `main.ts`
+  imports `buildHearthLight`, adds it to scene next to the lantern +
+  lamp arrays, and extends `__voxelTest__` with `getPointLightCount()`
+  (scene.traverse counting `isPointLight`) + `getHearthLightPosition()`.
+  Voxel renderer needs no changes — `DEFAULT_VOXEL_PALETTE` already
+  has entries for PLANKS / STONE / DIRT, so the new instances just
+  fall into the existing per-type `InstancedMesh` buckets.
+  `validate-visual.mjs` P9.1 block asserts `getPointLightCount() ≥ 9`
+  (4 lanterns + 4 lamp posts + 1 hearth), warps the player onto cell
+  (32, 18) just inside the doorway via `movePlayerTo(0.5, -13.5)`,
+  waits 200ms for the next RAF camera-follow tick, captures
+  `iter-${ITER}-interior.png`. Build green 541.51 kB (+0.76 kB vs
+  iter 51's 540.75 kB).
 
   **Layout** (tavern interior is the 6×4 plank floor at y=0 from
   `addTavern(originX=28, originZ=14)`, so interior cells run

@@ -1509,6 +1509,41 @@ try {
     failed = true;
   }
 
+  // P9.1 tavern interior dressing — assert the hearth PointLight is present
+  // (one more PointLight than the 4 lanterns + 4 lamp posts baseline) and
+  // capture a screenshot with the player warped onto the tavern doorway so
+  // the interior dressing (bar + hearth + tables + stools) reads in-frame.
+  try {
+    const lightInfo = await page.evaluate(() => ({
+      total: (window).__voxelTest__.getPointLightCount(),
+      hearth: (window).__voxelTest__.getHearthLightPosition(),
+    }));
+    if (lightInfo.total < 9) {
+      throw new Error(
+        `expected ≥9 PointLights (4 lantern + 4 lamp + 1 hearth), got ${lightInfo.total}`,
+      );
+    }
+    await page.evaluate((pos) => {
+      // Warp player onto the tavern doorway (cell ~32,18 inside the tavern
+      // interior) so the dressing is in-frame. gridOffset is -32 on both
+      // axes so cell (32, 18) is world (0.5, _, -13.5).
+      (window).__voxelTest__.movePlayerTo(0.5, -13.5);
+      void pos;
+    }, lightInfo.hearth);
+    // Brief settle so the next RAF tick repositions the camera before the
+    // screenshot captures.
+    await new Promise((r) => setTimeout(r, 200));
+    const interiorShot = `artifacts/screenshots/iter-${ITER}-interior.png`;
+    await page.screenshot({ path: interiorShot, fullPage: true });
+    console.log(`[validate:visual] interior screenshot -> ${interiorShot}`);
+    console.log(
+      `[validate:visual] P9.1 tavern interior OK (${lightInfo.total} PointLights, hearth at (${lightInfo.hearth.x.toFixed(2)}, ${lightInfo.hearth.y.toFixed(2)}, ${lightInfo.hearth.z.toFixed(2)}))`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] P9.1 tavern interior assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);
