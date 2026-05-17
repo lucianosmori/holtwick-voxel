@@ -1,11 +1,13 @@
 import {
   VOXEL_DIRT,
+  VOXEL_EMPTY,
   VOXEL_FLOOR,
   VOXEL_STONE,
   VOXEL_WATER,
   VoxelGrid,
 } from "./voxel";
 import { addTavern, TAVERN_WALL_HEIGHT } from "./tavern";
+import { ITEMS } from "../data/items";
 
 export const VILLAGE_WIDTH = 64;
 export const VILLAGE_DEPTH = 64;
@@ -137,4 +139,65 @@ export function buildVillage(seed: number = 1): VoxelGrid {
   });
 
   return grid;
+}
+
+export interface ItemSpawn {
+  item_id: string;
+  cellX: number;
+  cellZ: number;
+}
+
+export const ITEM_SPAWN_COUNT = 12;
+
+// Deterministic item placement: walks a separate mulberry32 stream (seed XOR
+// magic) so adding/removing items doesn't shift voxel layout. Skips water,
+// walls, the central plaza band (keeps player-spawn area uncluttered), and
+// any cell within 1 voxel of an NPC. Falls back early if 500 attempts can't
+// fill the quota — keeps boot fast on a pathological seed.
+export function computeItemSpawns(
+  seed: number,
+  grid: VoxelGrid,
+  npcCells: ReadonlyArray<{ cellX: number; cellZ: number }>,
+  count: number = ITEM_SPAWN_COUNT,
+): ItemSpawn[] {
+  const rand = mulberry32((seed ^ 0xa17e) >>> 0);
+  const cx = Math.floor(VILLAGE_WIDTH / 2);
+  const cz = Math.floor(VILLAGE_DEPTH / 2);
+  const PLAZA_INNER_HALF = 4; // keep an 8×8 buffer around player spawn clear
+
+  const isReserved = (x: number, z: number): boolean => {
+    if (Math.abs(x - cx) <= PLAZA_INNER_HALF && Math.abs(z - cz) <= PLAZA_INNER_HALF) return true;
+    for (const n of npcCells) {
+      if (Math.abs(x - n.cellX) <= 1 && Math.abs(z - n.cellZ) <= 1) return true;
+    }
+    return false;
+  };
+
+  const isWalkable = (x: number, z: number): boolean => {
+    if (!grid.inBounds(x, 0, z)) return false;
+    const ground = grid.get(x, 0, z);
+    if (ground === VOXEL_EMPTY || ground === VOXEL_WATER) return false;
+    for (let y = 1; y < grid.dims.height; y++) {
+      if (grid.get(x, y, z) !== VOXEL_EMPTY) return false;
+    }
+    return true;
+  };
+
+  const spawns: ItemSpawn[] = [];
+  const used = new Set<string>();
+  const MAX_ATTEMPTS = 500;
+  let attempts = 0;
+  while (spawns.length < count && attempts < MAX_ATTEMPTS) {
+    attempts++;
+    const x = Math.floor(rand() * VILLAGE_WIDTH);
+    const z = Math.floor(rand() * VILLAGE_DEPTH);
+    const key = `${x},${z}`;
+    if (used.has(key)) continue;
+    if (!isWalkable(x, z)) continue;
+    if (isReserved(x, z)) continue;
+    used.add(key);
+    const def = ITEMS[Math.floor(rand() * ITEMS.length)];
+    spawns.push({ item_id: def.id, cellX: x, cellZ: z });
+  }
+  return spawns;
 }

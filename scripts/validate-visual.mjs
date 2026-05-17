@@ -265,6 +265,65 @@ try {
     failed = true;
   }
 
+  // P6.3 item pickup flow: warp the player onto the first un-picked world
+  // item, wait a frame, assert inventory state reflects the pickup and the
+  // world item entry flips to picked=true.
+  try {
+    const spawns = await page.evaluate(() => (window).__voxelTest__.getItemWorldPositions());
+    if (!Array.isArray(spawns) || spawns.length === 0) {
+      throw new Error("getItemWorldPositions returned no spawns");
+    }
+    const target = spawns.find((s) => !s.picked);
+    if (!target) throw new Error("all spawned items already picked at boot");
+    const beforeCount = await page.evaluate(
+      (id) => (window).__voxelTest__.getItemCount(id),
+      target.item_id,
+    );
+    await page.evaluate(
+      ({ x, z }) => (window).__voxelTest__.movePlayerTo(x, z),
+      { x: target.x, z: target.z },
+    );
+    // Let RAF fire so checkPickups() runs after the warp.
+    await page.waitForFunction(
+      (id) => (window).__voxelTest__.getItemCount(id) > 0,
+      target.item_id,
+      { timeout: 3000, polling: 50 },
+    );
+    const afterCount = await page.evaluate(
+      (id) => (window).__voxelTest__.getItemCount(id),
+      target.item_id,
+    );
+    if (afterCount <= beforeCount) {
+      throw new Error(
+        `pickup did not increment count for ${target.item_id}: ${beforeCount} → ${afterCount}`,
+      );
+    }
+    const stillThere = await page.evaluate(
+      ({ x, z }) => {
+        const list = (window).__voxelTest__.getItemWorldPositions();
+        return list.some((s) => !s.picked && Math.abs(s.x - x) < 0.01 && Math.abs(s.z - z) < 0.01);
+      },
+      { x: target.x, z: target.z },
+    );
+    if (stillThere) throw new Error("item still un-picked after pickup window");
+    const inv = await page.evaluate(() => (window).__voxelTest__.getInventory());
+    const stack = Array.isArray(inv) ? inv.find((s) => s.item_id === target.item_id) : null;
+    if (!stack || stack.count < afterCount) {
+      throw new Error(
+        `inventory does not reflect pickup: ${JSON.stringify(inv)} for ${target.item_id}`,
+      );
+    }
+    const pickupShot = `artifacts/screenshots/iter-${ITER}-pickup.png`;
+    await page.screenshot({ path: pickupShot, fullPage: true });
+    console.log(`[validate:visual] pickup screenshot -> ${pickupShot}`);
+    console.log(
+      `[validate:visual] P6.3 pickup OK (${target.item_id} count ${beforeCount} → ${afterCount}, spawns=${spawns.length})`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] pickup flow assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);

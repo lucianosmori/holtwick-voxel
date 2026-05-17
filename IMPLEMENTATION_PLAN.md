@@ -140,38 +140,31 @@ the priority order.
   all checks pass). iter-24-quest.png captures the HUD in the corner with
   the completed quest.)
 
-- [ ] **P6.3** Item schema + 3 item types + world spawn + pickup. Files:
-  `src/data/item.schema.ts` (new), `src/data/items.ts` (new),
-  `src/game/inventory.ts` (new), `src/world/village.ts` extend to spawn
-  items via Mulberry32 (deterministic).
-
-  **Schema:**
-  ```typescript
-  export interface ItemDef {
-    id: string;
-    name: string;
-    color: number;
-    stack: number;
-    effect?: { type: "heal"; amount: number };
-  }
-  ```
-
-  **Three items:** `gold_coin` (color `0xffd84a`, stack 999),
-  `health_potion` (color `0xd64a4a`, stack 10, heal 25),
-  `iron_ore` (color `0x8a8a8a`, stack 50).
-
-  **World spawn:** 12 items scattered via seeded Mulberry32, skip
-  non-walkable cells (water, walls, plaza center, NPC positions).
-  Items are 0.3-cube billboards (`MeshBasicMaterial` colored) with
-  hover-bob animation `y = baseY + sin(t * 2) * 0.1`.
-
-  **Pickup:** in main loop, check player AABB vs each item position;
-  on overlap, push to inventory + dispose mesh + toast "+1 Iron Ore".
-  Add `__voxelTest__.movePlayerTo(x, z)` hook so Playwright can warp
-  the player onto an item without manual driving.
-
-  **Done when:** Playwright warps player onto a spawned item via the
-  test hook, asserts inventory state has the item.
+- [x] ~~**P6.3** Item schema + 3 item types + world spawn + pickup.~~
+  (iter 25 — `src/data/item.schema.ts` (`ItemDef` + `HealEffect` union),
+  `src/data/items.ts` (3 items: `gold_coin` 0xffd84a stack 999, `health_potion`
+  0xd64a4a stack 10 heal 25, `iron_ore` 0x8a8a8a stack 50), `src/game/inventory.ts`
+  (counts Map + subscribe/emit `PickupEvent` with stack-cap clamped `delta`),
+  `src/world/village.ts` `computeItemSpawns(seed, grid, npcCells, count=12)` walks
+  a `mulberry32(seed ^ 0xa17e)` stream so item placement doesn't shift voxel layout,
+  rejects water/empty ground + any cell with non-empty voxels at y≥1 (walls) + an
+  8×8 plaza-center buffer + every cell within 1 voxel of an NPC, caps at 500
+  attempts. `src/entities/worldItem.ts` `WorldItem` wraps a 0.3³ emissive cube
+  (`MeshStandardMaterial`, emissiveIntensity 0.35, metalness 0.7 for gold), float
+  `ITEM_BASE_Y = 1 + ITEM_HALF + 0.25`, `update(t)` does `y = baseY + sin(t*2 + phase)*0.1`
+  + slow yaw spin; phase derived deterministically from (worldX, worldZ) so reloads
+  match. `main.ts` builds the 12 items into `worldItems`, per-frame `checkPickups()`
+  computes 2D distance² vs `(PICKUP_RADIUS + PLAYER_HALF)²` (0.85), on hit calls
+  `addItem`, flips `it.picked`, disposes mesh+geom+material, shows a debounced
+  bottom-center `#pickup-toast` ("+1 Gold Coin"). `index.html` adds the toast div
+  + CSS (rgba+amber border, fade/slide 0.25s, z-index 6) — placeholder until
+  P8.2's queued slide-in stack replaces it. `__voxelTest__` extended:
+  `movePlayerTo(x, z)`, `getInventory()`, `getItemCount(id)`,
+  `getItemWorldPositions()`, `addItem(id, count?)`. `validate-visual.mjs` post-quest:
+  pulls spawn list, warps player onto first un-picked item, polls
+  `getItemCount(id) > 0`, asserts inventory stack reflects the pickup AND the
+  world entry flips to picked=true; captures `iter-${ITER}-pickup.png`. `npm run build`
+  green.)
 
 - [ ] **P6.4** Inventory modal triggered by `I` key. Files:
   `src/ui/inventory.ts` (new), `index.html` add `<div id="inventory-backdrop">`,

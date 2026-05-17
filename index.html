@@ -307,6 +307,30 @@
       }
       .hud-quest-complete { color: #8fd47a; }
       .hud-quest-in_progress { color: #ffd88a; }
+
+      /* Pickup toast — ad-hoc bottom-center text for P6.3; replaced by the
+         styled queue in P8.2. */
+      #pickup-toast {
+        position: fixed;
+        bottom: 64px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        padding: 8px 18px;
+        background: rgba(15, 18, 26, 0.9);
+        border: 1px solid rgba(255, 200, 80, 0.45);
+        border-radius: 6px;
+        color: #ffe9a8;
+        font-size: 14px;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.25s ease, transform 0.25s ease;
+        z-index: 6;
+      }
+      #pickup-toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
     </style>
   </head>
   <body>
@@ -335,6 +359,8 @@
       <div id="hud-quest-count">Quests (0)</div>
       <div id="hud-quest-list"></div>
     </div>
+
+    <div id="pickup-toast"></div>
 
     <div id="dialog-backdrop" role="dialog" aria-modal="true">
       <div id="dialog">
