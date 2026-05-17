@@ -1544,6 +1544,54 @@ try {
     failed = true;
   }
 
+  // P9.3 multi-Y terrain — assert addHills placed 3 hills, that warping onto
+  // a hill centre raises the player's Y by ~1 voxel (step-up via
+  // Player.resolveFloor), and that returning to flat ground snaps Y back down.
+  // Captures a screenshot from a hill centre so the cap reads visibly in-frame.
+  try {
+    const hillInfo = await page.evaluate(() => ({
+      count: (window).__voxelTest__.getHillCount(),
+      positions: (window).__voxelTest__.getHillPositions(),
+      baselineY: (window).__voxelTest__.getPlayerY(),
+    }));
+    if (hillInfo.count < 1) {
+      throw new Error(`expected ≥1 hill placed, got ${hillInfo.count}`);
+    }
+    const hill = hillInfo.positions[0];
+    await page.evaluate((pos) => {
+      (window).__voxelTest__.movePlayerTo(pos.worldX, pos.worldZ);
+    }, hill);
+    await new Promise((r) => setTimeout(r, 200));
+    const onHillY = await page.evaluate(() => (window).__voxelTest__.getPlayerY());
+    // Ground baseline is 1.3 (floor=1 + half=0.3); on a hill cap it's 2.3.
+    // Delta ≈ 1.0 with floating-point slop.
+    if (onHillY - hillInfo.baselineY < 0.5) {
+      throw new Error(
+        `expected player Y to rise on hill, baseline=${hillInfo.baselineY.toFixed(3)} onHill=${onHillY.toFixed(3)}`,
+      );
+    }
+    const hillShot = `artifacts/screenshots/iter-${ITER}-hill.png`;
+    await page.screenshot({ path: hillShot, fullPage: true });
+    console.log(`[validate:visual] hill screenshot -> ${hillShot}`);
+    // Step back down: warp to plaza centre (cell 32,32 -> world 0.5,0.5).
+    await page.evaluate(() => {
+      (window).__voxelTest__.movePlayerTo(0.5, 0.5);
+    });
+    await new Promise((r) => setTimeout(r, 100));
+    const offHillY = await page.evaluate(() => (window).__voxelTest__.getPlayerY());
+    if (Math.abs(offHillY - hillInfo.baselineY) > 0.1) {
+      throw new Error(
+        `expected Y to snap back to baseline ${hillInfo.baselineY.toFixed(3)}, got ${offHillY.toFixed(3)}`,
+      );
+    }
+    console.log(
+      `[validate:visual] P9.3 hills OK (${hillInfo.count} hills, baselineY=${hillInfo.baselineY.toFixed(2)} -> onHillY=${onHillY.toFixed(2)} -> offHillY=${offHillY.toFixed(2)})`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] P9.3 hills assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);

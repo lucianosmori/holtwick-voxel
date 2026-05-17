@@ -938,31 +938,66 @@ no longer flips graduation). Final task **P9.6** flips status to
   dropping the multi-pass `countByType` + per-cursor InstancedMesh
   fill loop).
 
-- [ ] **P9.3** Multi-Y terrain — 3 elevated mini-hills around the
-  village outskirts, each a 5×5 cell area raised by 1 voxel (so
-  ground at y=0 for the 5×5 footprint becomes `VOXEL_DIRT` capped
-  by a `VOXEL_FLOOR` grass cell at y=1, and the y=0 cell becomes
-  `VOXEL_DIRT` to look like the slope's substrate).
+- [x] ~~**P9.3** Multi-Y terrain — 3 elevated mini-hills around the
+  village outskirts, each a 5×5 cell area raised by 1 voxel.~~
+  (iter 54 — `src/world/village.ts` exports `addHills(grid, seed,
+  treeCells, reservedCells?, count=3)`. Walks a separate mulberry32
+  stream (`villageSeed + 9001`) so adding/removing hills doesn't
+  reshuffle items, NPCs, or trees. Each hill: 5×5 footprint
+  (HILL_HALF=2), y=0 becomes `VOXEL_DIRT` (slope substrate), y=1
+  becomes `VOXEL_FLOOR` (grass cap). Rejection rules per spec:
+  centre within `PLAZA_HALF + 5 = 15` of plaza on either axis,
+  within `PATH_HALF + 3 = 6` of either road centreline (cx/cz),
+  within 3 cells of the tavern footprint, within 4 cells of any
+  tree (Chebyshev). Additional safety filters: the entire 5×5
+  footprint must currently be plain grass (y=0=`VOXEL_FLOOR` AND
+  y=1=`VOXEL_EMPTY`) so hills don't clobber ponds/roads/plaza/
+  buildings or anything already stacked at y=1 (bar counter, hearth,
+  market posts, etc.); the footprint must not contain any reserved
+  cell (NPCs + items + trees passed in from main.ts), so we don't
+  sink an existing scene-object into the new grass cap. Hills also
+  reject overlap with each other (Chebyshev ≤ HILL_HALF·2+1=5).
 
-  Files: `src/world/village.ts` add `addHills(grid, seed)` after
-  `computeItemSpawns` (so item spawn list is computed against the
-  flat ground; items don't end up perched on hills); `src/entities/player.ts`
-  collision needs an auto-step-up rule: if the cell the player is
-  trying to enter has a solid voxel at y=1 BUT y=2 is empty AND
-  the cell is exactly 1 voxel taller than current player floor,
-  ALLOW the move and set player Y to top-of-block + PLAYER_HALF.
-  Falling back down works the same in reverse (no gravity yet —
-  just snap to top of the cell when leaving a hill).
+  `src/entities/player.ts` swaps the old `hitsWall(worldX, worldZ)`
+  boolean for `resolveFloor(worldX, worldZ, fromFloor) → number`
+  that returns the cell-layer Y the player would occupy (= top of
+  surface), or `-1` if blocked. Algorithm: scan range capped at
+  `fromFloor` so overhead structures (market-stall canopy at y=3)
+  don't inflate the surface height when walking underneath; pick
+  the highest non-empty voxel in `[1, fromFloor]` across the
+  footprint, `newFloor = topSolidY + 1`. Step-up is capped at
+  `STEP_UP_MAX = 1` vs `fromFloor` (so tavern walls and market-stall
+  posts at y=1,2 still block — newFloor jumps to 3, diff > 1).
+  Step-down is unlimited (no gravity — player snaps to whatever
+  surface is below). Head clearance: the cell at `newFloor` must
+  be empty across the footprint, so walking into a 2-tall wall
+  (y=1 + y=2 solid) gets blocked even though step-up math would
+  otherwise allow it (newFloor=2, cell y=2 = wall → blocked).
+  Legacy `VOXEL_WALL` at y=0 stays unconditionally blocking. New
+  `Player.snapToFloor()` recomputes floor + sets `mesh.y` after
+  any external position write (save restore, test `movePlayerTo`)
+  so the camera doesn't render the cube sunk into a hill until
+  the next move tick. `currentFloorY` is tracked as instance state
+  (initial `GROUND_FLOOR_Y = 1`).
 
-  **Hill placement:** 3 hills via Mulberry32 seed=villageSeed+9001.
-  Reject if center cell is within 5 of plaza, within 3 of any road,
-  within 3 of tavern footprint, or within 4 of a tree.
+  `src/main.ts` restructured: NPC/item/foliage placement run
+  first (against flat ground), THEN `addHills(world, seed, trees,
+  reservedCells)` mutates the grid, THEN `buildVoxelMesh(world)`
+  + scene.add (so rendered geometry includes the caps). Player
+  creation stays before hills (only stores a grid reference);
+  `snapToFloor()` called once post-hills so save-restored XZ on a
+  hill cell raises the player onto the cap. New test hooks:
+  `getPlayerY()`, `getHillCount()`, `getHillPositions()`;
+  `movePlayerTo()` now snaps floor after the warp.
 
-  **Done when:** Playwright screenshot shows visible elevation
-  (additional shadow contour); `__voxelTest__.movePlayerTo(<hill
-  center>)` followed by reading `__voxelTest__.getPlayerY()` returns
-  a Y > baseline ground Y. Player can still walk all original paths
-  (regression check: walk to Aldric still completes).
+  `scripts/validate-visual.mjs` P9.3 block asserts hills ≥ 1,
+  warps player to the first hill centre via `movePlayerTo`, waits
+  200ms for the camera follow tick, asserts `getPlayerY()` rose
+  by ≥ 0.5 vs flat-ground baseline, captures `iter-${ITER}-hill.png`,
+  then warps back to plaza centre and asserts Y snapped back to
+  baseline ±0.1. Build green 545.78 kB (+1.88 kB vs iter 53's
+  543.90 kB — `addHills` source + `resolveFloor`/`snapToFloor`
+  player methods + test hooks).)
 
 - [ ] **P9.4** Indoor lighting at night — 2 candle PointLights inside
   tavern (above bar, above table-area), plus the hearth PointLight

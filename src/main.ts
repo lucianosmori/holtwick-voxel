@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { bootstrapScene, CAMERA_OFFSET } from "./render/scene";
-import { buildVillage, computeItemSpawns, VILLAGE_DEPTH, VILLAGE_WIDTH, type ItemSpawn } from "./world/village";
+import { addHills, buildVillage, computeItemSpawns, VILLAGE_DEPTH, VILLAGE_WIDTH, type ItemSpawn } from "./world/village";
 import { buildVoxelMesh } from "./render/voxelMesh";
 import { buildFoliageMesh, computeFoliage } from "./world/foliage";
 import { buildPropMesh, computeProps, type PropPlacement } from "./world/props";
@@ -60,10 +60,11 @@ const dayNight = new DayNight(sun, hemi);
 
 const VILLAGE_SEED = 1337;
 const world = buildVillage(VILLAGE_SEED);
-const worldMesh = buildVoxelMesh(world);
 const gridOffset = new THREE.Vector3(-VILLAGE_WIDTH / 2, 0, -VILLAGE_DEPTH / 2);
-worldMesh.position.copy(gridOffset);
-scene.add(worldMesh);
+// Voxel mesh build deferred until after addHills(world, ...) below mutates
+// the grid with elevated terrain, so the rendered geometry includes the hill
+// caps. Player only stores a grid reference, so it sees post-hill voxels at
+// collision time regardless of mesh build order.
 
 const player = new Player(world, gridOffset);
 player.attachKeyboard();
@@ -170,6 +171,32 @@ const trees = computeFoliage(
 const foliageMesh = buildFoliageMesh(trees);
 foliageMesh.position.copy(gridOffset);
 scene.add(foliageMesh);
+
+// P9.3 — stamp 3 elevated 5×5 mini-hills onto the outskirts. Runs after
+// NPC/item/foliage placement so those computations see the flat ground; the
+// hills then mutate the grid in place. Reserved cells (NPCs + items + trees)
+// are excluded from the 5×5 footprint so we don't sink any scene-object into
+// the new grass cap. Player collision auto-steps onto the y=1 grass caps via
+// Player.resolveFloor().
+const hillReserved: Array<{ cellX: number; cellZ: number }> = [];
+for (const s of NPC_SPAWNS) hillReserved.push({ cellX: s.cellX, cellZ: s.cellZ });
+for (const s of itemSpawns) hillReserved.push({ cellX: s.cellX, cellZ: s.cellZ });
+for (const t of trees) hillReserved.push({ cellX: t.cellX, cellZ: t.cellZ });
+const hills = addHills(
+  world,
+  VILLAGE_SEED,
+  trees.map((t) => ({ cellX: t.cellX, cellZ: t.cellZ })),
+  hillReserved,
+);
+// Snap player Y to whatever floor sits under their current XZ (handles the
+// edge case where save-restore put them onto a cell that just got hill-capped).
+player.snapToFloor();
+
+// Voxel mesh built now that addHills has finished mutating the grid, so the
+// rendered geometry includes the elevated hill caps.
+const worldMesh = buildVoxelMesh(world);
+worldMesh.position.copy(gridOffset);
+scene.add(worldMesh);
 
 // P8.1 decorative props: 20 barrels + crates seeded onto the 1-cell ring
 // around each building footprint. Reserved cells include NPCs, items, and
@@ -353,6 +380,9 @@ if (isTestRun) {
     triggerOnTalkTo: (npcId: string) => void;
     getPointLightCount: () => number;
     getHearthLightPosition: () => { x: number; y: number; z: number };
+    getPlayerY: () => number;
+    getHillCount: () => number;
+    getHillPositions: () => Array<{ cellX: number; cellZ: number; worldX: number; worldZ: number }>;
   }
   const hook: VoxelTestHook = {
     openDialog: (npcId?: string) => {
@@ -368,6 +398,9 @@ if (isTestRun) {
     movePlayerTo: (x, z) => {
       player.mesh.position.x = x;
       player.mesh.position.z = z;
+      // P9.3 — recompute floor + snap y so warping onto a hill puts the
+      // player on top of the cap instead of leaving them sunk inside it.
+      player.snapToFloor();
       resetFootstepCursor(x, z);
     },
     getInventory,
@@ -452,6 +485,15 @@ if (isTestRun) {
       y: hearthLight.position.y,
       z: hearthLight.position.z,
     }),
+    getPlayerY: () => player.mesh.position.y,
+    getHillCount: () => hills.length,
+    getHillPositions: () =>
+      hills.map((h) => ({
+        cellX: h.cellX,
+        cellZ: h.cellZ,
+        worldX: gridOffset.x + h.cellX + 0.5,
+        worldZ: gridOffset.z + h.cellZ + 0.5,
+      })),
   };
   (window as unknown as { __voxelTest__?: VoxelTestHook }).__voxelTest__ = hook;
 }

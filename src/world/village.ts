@@ -241,3 +241,123 @@ export function computeItemSpawns(
   }
   return spawns;
 }
+
+// P9.3 — multi-Y terrain. Stamps 3 elevated 5×5 mini-hills around the village
+// outskirts. Each hill cell becomes VOXEL_DIRT at y=0 (substrate) capped by
+// VOXEL_FLOOR grass at y=1, so the walking surface rises by exactly 1 voxel.
+// Player collision (src/entities/player.ts) auto-steps onto the cap when the
+// neighbouring cell is exactly 1 voxel taller than the current floor.
+//
+// Placement walks a separate mulberry32 stream (villageSeed + 9001) so adding
+// or removing hills doesn't shift item or NPC layouts. Rejection rules per
+// spec: hill centre must be > 5 cells from the plaza (Chebyshev), > 3 cells
+// from any dirt-road corridor, > 3 cells from the tavern footprint, and > 4
+// cells from any tree cell. The 5×5 footprint must also fit inside the grid
+// AND consist entirely of plain grass (VOXEL_FLOOR at y=0 with y=1 empty) so
+// hills don't clobber roads, ponds, plazas, building floors, or anything
+// already stacked at y=1 (bar counter, hearth, market posts, etc.).
+
+export const HILL_COUNT = 3;
+export const HILL_HALF = 2; // 5×5 footprint -> half-extent 2 cells each side
+const HILL_SEED_OFFSET = 9001;
+const HILL_PLAZA_BUFFER = 5;
+const HILL_ROAD_BUFFER = 3;
+const HILL_TAVERN_BUFFER = 3;
+const HILL_TREE_BUFFER = 4;
+const HILL_MAX_ATTEMPTS = 400;
+
+export function addHills(
+  grid: VoxelGrid,
+  seed: number,
+  treeCells: ReadonlyArray<{ cellX: number; cellZ: number }>,
+  reservedCells: ReadonlyArray<{ cellX: number; cellZ: number }> = [],
+  count: number = HILL_COUNT,
+): Array<{ cellX: number; cellZ: number }> {
+  const rand = mulberry32(((seed + HILL_SEED_OFFSET) >>> 0));
+  const cx = Math.floor(VILLAGE_WIDTH / 2);
+  const cz = Math.floor(VILLAGE_DEPTH / 2);
+  // Plaza interior runs cx±PLAZA_HALF; "within N of plaza" = Chebyshev distance
+  // from any plaza cell ≤ N, i.e. centre within PLAZA_HALF+N of cx on each axis.
+  const plazaXLimit = PLAZA_HALF + HILL_PLAZA_BUFFER;
+  const plazaZLimit = PLAZA_HALF + HILL_PLAZA_BUFFER;
+  // Roads are PATH_HALF-wide bands centred on cx/cz; "within N of road" =
+  // distance from cx (or cz) ≤ PATH_HALF + N on the perpendicular axis.
+  const roadLimit = PATH_HALF + HILL_ROAD_BUFFER;
+  // Tavern footprint runs TAVERN_ORIGIN_X..+8, TAVERN_ORIGIN_Z..+6 (matches
+  // addTavern stamp). "Within N of tavern" buffer applies that range.
+  const tavernXMin = TAVERN_ORIGIN_X - HILL_TAVERN_BUFFER;
+  const tavernXMax = TAVERN_ORIGIN_X + 8 - 1 + HILL_TAVERN_BUFFER;
+  const tavernZMin = TAVERN_ORIGIN_Z - HILL_TAVERN_BUFFER;
+  const tavernZMax = TAVERN_ORIGIN_Z + 6 - 1 + HILL_TAVERN_BUFFER;
+
+  const reservedKeys = new Set(reservedCells.map((c) => `${c.cellX},${c.cellZ}`));
+  const isFootprintAllGrass = (hcx: number, hcz: number): boolean => {
+    for (let dz = -HILL_HALF; dz <= HILL_HALF; dz++) {
+      for (let dx = -HILL_HALF; dx <= HILL_HALF; dx++) {
+        const x = hcx + dx;
+        const z = hcz + dz;
+        if (!grid.inBounds(x, 0, z)) return false;
+        if (grid.get(x, 0, z) !== VOXEL_FLOOR) return false;
+        if (grid.get(x, 1, z) !== VOXEL_EMPTY) return false;
+        // Reserved cells (NPCs, items, props) live at world-y=GROUND_FLOOR_Y;
+        // stamping a hill cap under them would visually sink them into the
+        // grass. Cheap to dodge by rejecting the whole footprint.
+        if (reservedKeys.has(`${x},${z}`)) return false;
+      }
+    }
+    return true;
+  };
+
+  const placed: Array<{ cellX: number; cellZ: number }> = [];
+  let attempts = 0;
+  while (placed.length < count && attempts < HILL_MAX_ATTEMPTS) {
+    attempts++;
+    // Sample centre with HILL_HALF-cell margin so the 5×5 footprint always
+    // fits in the grid.
+    const hcx = HILL_HALF + Math.floor(rand() * (VILLAGE_WIDTH - 2 * HILL_HALF));
+    const hcz = HILL_HALF + Math.floor(rand() * (VILLAGE_DEPTH - 2 * HILL_HALF));
+    // Plaza buffer
+    if (Math.abs(hcx - cx) <= plazaXLimit && Math.abs(hcz - cz) <= plazaZLimit) continue;
+    // Road buffer (either N/S or E/W road corridor)
+    if (Math.abs(hcx - cx) <= roadLimit) continue;
+    if (Math.abs(hcz - cz) <= roadLimit) continue;
+    // Tavern buffer
+    if (hcx >= tavernXMin && hcx <= tavernXMax && hcz >= tavernZMin && hcz <= tavernZMax) continue;
+    // Tree buffer (Chebyshev ≤ HILL_TREE_BUFFER vs any tree cell)
+    let nearTree = false;
+    for (const t of treeCells) {
+      if (
+        Math.abs(hcx - t.cellX) <= HILL_TREE_BUFFER &&
+        Math.abs(hcz - t.cellZ) <= HILL_TREE_BUFFER
+      ) {
+        nearTree = true;
+        break;
+      }
+    }
+    if (nearTree) continue;
+    if (!isFootprintAllGrass(hcx, hcz)) continue;
+    // Hill spacing — keep hills from overlapping each other.
+    let nearHill = false;
+    for (const h of placed) {
+      if (
+        Math.abs(hcx - h.cellX) <= HILL_HALF * 2 + 1 &&
+        Math.abs(hcz - h.cellZ) <= HILL_HALF * 2 + 1
+      ) {
+        nearHill = true;
+        break;
+      }
+    }
+    if (nearHill) continue;
+    // Stamp: y=0 -> DIRT (substrate), y=1 -> FLOOR (grass cap).
+    for (let dz = -HILL_HALF; dz <= HILL_HALF; dz++) {
+      for (let dx = -HILL_HALF; dx <= HILL_HALF; dx++) {
+        const x = hcx + dx;
+        const z = hcz + dz;
+        grid.set(x, 0, z, VOXEL_DIRT);
+        grid.set(x, 1, z, VOXEL_FLOOR);
+      }
+    }
+    placed.push({ cellX: hcx, cellZ: hcz });
+  }
+  return placed;
+}
