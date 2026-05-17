@@ -1,10 +1,10 @@
 {
     "updated_at":  "2026-05-17",
-    "iteration":  35,
+    "iteration":  36,
     "started_at":  "2026-05-12T00:00:00Z",
     "experiment":  "holtwick-voxel",
     "consecutive_no_progress":  0,
     "last_error":  null,
     "status":  "exploring",
-    "last_outcome":  "P6.12 done — README v1 + showcase capture. `scripts/capture-showcase.mjs` boots its own `vite preview` on :4175 and captures 4 named PNGs under `artifacts/screenshots/`: `showcase-village-day.png` (`?test=1&dayNight=0`), `showcase-dialog.png` (open Edda via `__voxelTest__.openDialog(\"edda\")`, send a message, wait for the streamed assistant reply), `showcase-inventory.png` (seed `gold_coin x12 + health_potion x3 + iron_ore x5`, press `KeyI`, wait for `#inventory-backdrop.show`), `showcase-night-lanterns.png` (`?test=1&dayNight=0.5` locks midnight so the 4 PointLights ramp full). Each scene reloads with its own URL params. README rewritten: status table ticks P6.1-P6.11, new `## Gameplay` section (move/talk/quests/inventory/save/day-night/audio/debug), new `## Screenshots` 2×2 grid with captions, Stack updated to 64×3 grid + audio + persistence + full validation footprint. Build green 508.43 kB; status.json stays `exploring` per plan — graduation flip is P8.8. Next: P7.1 (more buildings: blacksmith forge + village well + 2 market stalls)."
+    "last_outcome":  "P7.1 done — `src/world/buildings.ts` stamps three new structures into the village grid: blacksmith forge (6×6 plank ring at (18,20) with east-side doorway at z=22 + single `VOXEL_STONE` anvil at interior centre + plank floor), village well (radius-2 stone ring at y=1 around (46,30) + `VOXEL_WATER` at centre y=0), and 2 market stalls at (20,36) + (24,36) (4 plank corner posts y=1..2 + 3×2 plank canopy at y=3, open-sided). `village.ts` calls `addBuildings(grid)` after `addTavern` and bumps `VILLAGE_HEIGHT` from 3 to 4 (= `1 + Math.max(TAVERN_WALL_HEIGHT, BUILDINGS_MAX_Y=3)`) so the y=3 canopy fits. `entities/player.ts` `hitsWall` now restricts its column scan to the player's torso y range (`yLo = floor(PLAYER_Y - half)`, `yHi = floor(PLAYER_Y + half)`) so the overhead canopy doesn't wall off the cells beneath the stall — keeps existing wall behaviour at y=1..2 unchanged. Build green 509.74 kB (+1.31 kB vs iter 35). Visual gate runs in CI on push. Next: P7.2 (5 more tavern NPCs spawned at new buildings)."
 }

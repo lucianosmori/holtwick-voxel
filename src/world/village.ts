@@ -7,13 +7,15 @@ import {
   VoxelGrid,
 } from "./voxel";
 import { addTavern, TAVERN_WALL_HEIGHT } from "./tavern";
+import { addBuildings, BUILDINGS_MAX_Y } from "./buildings";
 import { ITEMS } from "../data/items";
 
 export const VILLAGE_WIDTH = 64;
 export const VILLAGE_DEPTH = 64;
-// Height = 1 (ground) + TAVERN_WALL_HEIGHT (stacked wall layers); ground tiles
-// live at y=0, building walls at y=1..2.
-export const VILLAGE_HEIGHT = 1 + TAVERN_WALL_HEIGHT;
+// Ground tiles live at y=0; building voxels stack above. Height sized to the
+// tallest stamp — tavern walls (TAVERN_WALL_HEIGHT) or P7.1 market-stall
+// canopy at y=BUILDINGS_MAX_Y, whichever is higher.
+export const VILLAGE_HEIGHT = 1 + Math.max(TAVERN_WALL_HEIGHT, BUILDINGS_MAX_Y);
 
 export const TAVERN_ORIGIN_X = 28;
 export const TAVERN_ORIGIN_Z = 14;
@@ -137,6 +139,11 @@ export function buildVillage(seed: number = 1): VoxelGrid {
     originZ: TAVERN_ORIGIN_Z,
     doorwayX: TAVERN_DOORWAY_X,
   });
+
+  // P7.1 — blacksmith forge, village well, 2 market stalls. Stamped after the
+  // tavern so any overlap with the plaza/road tiles gets overwritten by the
+  // building voxels.
+  addBuildings(grid);
 
   return grid;
 }

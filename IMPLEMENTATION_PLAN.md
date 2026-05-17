@@ -468,25 +468,19 @@ to add SURFACE AREA (more content + buildings + NPCs + quests) and
 POLISH (settings, idle barks, minimap) without introducing new
 mechanics that need design decisions overnight.
 
-- [ ] **P7.1** More buildings: blacksmith forge, village well, 2
-  market stalls. Files: `src/world/buildings.ts` (new), called from
-  `src/world/village.ts` after `addTavern`.
-
-  **Blacksmith forge** at `(originX=18, originZ=20, doorwayZ=22)`:
-  6×6 footprint, plank walls, 1-cell doorway on east side, stone
-  anvil (single `VOXEL_STONE` at center).
-
-  **Village well** at `(centerX=46, centerZ=30)`: circular ring of
-  `VOXEL_STONE` (radius 2, 1 voxel tall at y=1) with `VOXEL_WATER`
-  in the center hole (1×1 at y=0).
-
-  **Market stalls** at `(20, 36)` and `(24, 36)`: 3×2 footprint each,
-  4 plank corner posts (y=1..2) supporting a 3×2 plank canopy at y=3.
-  No walls, just posts + roof. Open-sided.
-
-  **Done when:** Playwright screenshot shows 4 new structures distinct
-  from tavern; pixel-content bin count increases by >50 (more
-  voxel surface variety).
+- [x] ~~**P7.1** More buildings: blacksmith forge, village well, 2
+  market stalls.~~ (iter 36 — `src/world/buildings.ts` exports
+  `addBlacksmith` (6×6 plank ring + east doorway at z=22 + single
+  `VOXEL_STONE` anvil at interior centre), `addWell` (radius-2 stone
+  ring at y=1 around `(46, 30)` + `VOXEL_WATER` at centre y=0), and
+  `addMarketStall` ×2 at `(20, 36)` + `(24, 36)` (4 plank posts y=1..2
+  + 3×2 plank canopy at y=3). `VILLAGE_HEIGHT` bumped to
+  `1 + max(TAVERN_WALL_HEIGHT, BUILDINGS_MAX_Y=3)` = 4 so the canopy
+  fits. Player collision in `entities/player.ts` constrained to the
+  player's actual y range `[floor(PLAYER_Y - half), floor(PLAYER_Y +
+  half)]` instead of the whole column, so the stall canopy doesn't
+  wall off the cells beneath it. Build green at 509.74 kB. Visual gate
+  runs in CI on push.)
 
 - [ ] **P7.2** 5 more tavern NPCs (lifted from existing
   `data/npcs/*.json` corpus). Files: extend `src/data/tavernCast.ts`

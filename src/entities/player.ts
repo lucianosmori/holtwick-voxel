@@ -142,15 +142,18 @@ export class Player {
     const cellMaxX = Math.floor(maxX);
     const cellMinZ = Math.floor(minZ);
     const cellMaxZ = Math.floor(maxZ);
+    // Only block on voxels the player's torso AABB actually intersects, so
+    // overhead structures (e.g. P7.1 market-stall canopies at y=3) don't wall
+    // off the cells beneath them.
     const upperY = this.grid.dims.height;
+    const yLo = Math.max(1, Math.floor(PLAYER_Y - PLAYER_HALF));
+    const yHi = Math.min(upperY - 1, Math.floor(PLAYER_Y + PLAYER_HALF));
     for (let cz = cellMinZ; cz <= cellMaxZ; cz++) {
       for (let cx = cellMinX; cx <= cellMaxX; cx++) {
         // Ground layer (y=0) is walkable terrain; legacy VOXEL_WALL stays
         // blocking for backward compatibility.
         if (this.grid.get(cx, 0, cz) === VOXEL_WALL) return true;
-        // Any non-empty voxel above ground (tavern walls, future buildings)
-        // blocks the player's torso AABB.
-        for (let y = 1; y < upperY; y++) {
+        for (let y = yLo; y <= yHi; y++) {
           if (this.grid.get(cx, y, cz) !== VOXEL_EMPTY) return true;
         }
       }
