@@ -8,7 +8,7 @@ import {
 } from "./voxel";
 import { addTavern, TAVERN_WALL_HEIGHT } from "./tavern";
 import { addBuildings, BUILDINGS_MAX_Y } from "./buildings";
-import { ITEMS } from "../data/items";
+import { ITEMS, SEEDED_ITEM_IDS, SEEDED_PER_TYPE } from "../data/items";
 
 export const VILLAGE_WIDTH = 64;
 export const VILLAGE_DEPTH = 64;
@@ -154,7 +154,9 @@ export interface ItemSpawn {
   cellZ: number;
 }
 
-export const ITEM_SPAWN_COUNT = 12;
+// P8.6 — 12 random slots + (SEEDED_ITEM_IDS.length * SEEDED_PER_TYPE) guaranteed
+// slots for the new item types (bread/apple/wooden_sword/wooden_shield).
+export const ITEM_SPAWN_COUNT = 12 + SEEDED_ITEM_IDS.length * SEEDED_PER_TYPE;
 
 // Deterministic item placement: walks a separate mulberry32 stream (seed XOR
 // magic) so adding/removing items doesn't shift voxel layout. Skips water,
@@ -192,7 +194,33 @@ export function computeItemSpawns(
 
   const spawns: ItemSpawn[] = [];
   const used = new Set<string>();
-  const MAX_ATTEMPTS = 500;
+  const MAX_ATTEMPTS = 1000;
+
+  // P8.6 — front-load with SEEDED_PER_TYPE of each guaranteed item type so the
+  // new corpus is always visible in the world. These occupy the first slots of
+  // the array, so the remaining `count - seededTotal` get random selections.
+  const tryPlace = (itemId: string): boolean => {
+    for (let i = 0; i < MAX_ATTEMPTS; i++) {
+      const x = Math.floor(rand() * VILLAGE_WIDTH);
+      const z = Math.floor(rand() * VILLAGE_DEPTH);
+      const key = `${x},${z}`;
+      if (used.has(key)) continue;
+      if (!isWalkable(x, z)) continue;
+      if (isReserved(x, z)) continue;
+      used.add(key);
+      spawns.push({ item_id: itemId, cellX: x, cellZ: z });
+      return true;
+    }
+    return false;
+  };
+
+  for (const itemId of SEEDED_ITEM_IDS) {
+    for (let k = 0; k < SEEDED_PER_TYPE; k++) {
+      if (spawns.length >= count) break;
+      tryPlace(itemId);
+    }
+  }
+
   let attempts = 0;
   while (spawns.length < count && attempts < MAX_ATTEMPTS) {
     attempts++;

@@ -25,7 +25,7 @@ import { DayNight } from "./world/dayNight";
 import { bindTitle } from "./ui/title";
 import { isFpsOverlayVisible, mountHud, setFpsOverlayText, setFpsOverlayVisible, setTimeOfDayLabel } from "./ui/hud";
 import { acceptQuest, bindCollectAutoComplete, getGold, getQuestState, getQuests } from "./game/quests";
-import { itemById } from "./data/items";
+import { ITEMS, itemById } from "./data/items";
 import { addItem, getInventory, getItemCount, isPicked, markPicked, type InventoryStack } from "./game/inventory";
 import { ITEM_BASE_Y, PICKUP_RADIUS, WorldItem } from "./entities/worldItem";
 import {
@@ -315,6 +315,7 @@ if (isTestRun) {
     movePlayerTo: (x: number, z: number) => void;
     getInventory: () => InventoryStack[];
     getItemCount: (id: string) => number;
+    getItemDefCount: () => number;
     getItemWorldPositions: () => ItemWorldPos[];
     addItem: (id: string, count?: number) => void;
     openInventory: () => void;
@@ -355,6 +356,7 @@ if (isTestRun) {
     },
     getInventory,
     getItemCount,
+    getItemDefCount: () => ITEMS.length,
     // P6.5.1 — picked slots are pruned (post-pickup OR restored from save).
     // The test harness's "find first un-picked" pattern stays correct; new
     // post-reload assert in validate-visual.mjs checks the entry count drops

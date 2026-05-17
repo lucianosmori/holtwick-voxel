@@ -758,14 +758,25 @@ at P9.6.
   (+2.08 kB vs iter 47's 534.27 kB — the sign canvas texture +
   shared box geometry + 4-instance matrix array).)
 
-- [ ] **P8.6** 4 more item types: `bread` (heal 10), `apple`
+- [x] ~~**P8.6** 4 more item types: `bread` (heal 10), `apple`
   (heal 5), `wooden_sword` (cosmetic, no effect yet), `wooden_shield`
   (cosmetic). Files: extend `src/data/items.ts`, seed 3 of each
-  type in world via `village.ts` placement.
-
-  **Done when:** Playwright `__voxelTest__.getItemDefCount()` returns
-  7 (was 3 → +4 = 7); inventory modal renders all 7 item types if
-  collected.
+  type in world via `village.ts` placement.~~ (iter 49 — `ITEMS`
+  grew 3 → 7 with the new corpus (bread heal 10 / apple heal 5 /
+  wooden_sword cosmetic / wooden_shield cosmetic), each with distinct
+  color + stack caps. New `SEEDED_ITEM_IDS` + `SEEDED_PER_TYPE=3`
+  exports drive deterministic placement: `computeItemSpawns` now
+  front-loads 3 of each seeded ID via a `tryPlace(itemId)` helper
+  before the existing random RNG fills the remaining slots from
+  the full 7-item palette. `ITEM_SPAWN_COUNT` bumped 12 → 24
+  (12 guaranteed + 12 random) and MAX_ATTEMPTS 500 → 1000 to leave
+  headroom. New test hook `getItemDefCount(): number` returns
+  `ITEMS.length` (=7). Inventory modal is already generic
+  (`ItemDef.name` + color square + count) so the 4 new types render
+  automatically when collected. P6.5 reload world-count assert is
+  relative pre/post so the bump is transparent; P6.3 pickup harness
+  picks the first un-picked spawn regardless of item_id. Build green
+  536.98 kB (+0.63 kB vs iter 48).)
 
 - [ ] **P8.7** 3 more quests: deliver-bread (giver: Edda, deliver 1
   bread to baker), talk-to-all (giver: Bren, trigger: talk-to all
