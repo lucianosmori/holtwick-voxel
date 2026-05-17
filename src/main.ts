@@ -35,6 +35,7 @@ import {
 } from "./audio/ambient";
 import { maybeStep, resetFootstepCursor } from "./audio/footsteps";
 import { buildLanterns, updateLanterns } from "./render/lanterns";
+import { mountMinimap } from "./ui/minimap";
 
 bindTitle();
 mountHud();
@@ -152,6 +153,12 @@ scene.add(foliageMesh);
 const lanterns = buildLanterns(gridOffset);
 for (const l of lanterns) scene.add(l.light);
 updateLanterns(lanterns, dayNight.currentPhase);
+
+// P7.3 minimap — initialised after gridOffset so world→cell conversion uses
+// the same anchor the voxel mesh + lanterns do. Re-rendered every 10 frames
+// from the RAF loop below; the static layer (bg + roads + plaza + tavern
+// outline) is pre-rendered once inside mountMinimap.
+const minimap = mountMinimap({ x: gridOffset.x, z: gridOffset.z });
 
 const PICKUP_DIST_SQ = (PICKUP_RADIUS + PLAYER_HALF) * (PICKUP_RADIUS + PLAYER_HALF);
 
@@ -356,6 +363,34 @@ let fpsWindowIdx = 0;
 let fpsWindowFilled = 0;
 let fpsRenderCounter = 0;
 
+const MINIMAP_RENDER_EVERY = 10;
+let minimapCounter = 0;
+const LANTERN_LIT_THRESHOLD = 0.5;
+
+function tickMinimap(): void {
+  const npcsForMap = interactables.map((n) => ({
+    worldX: n.mesh.position.x,
+    worldZ: n.mesh.position.z,
+  }));
+  const itemsForMap: Array<{ worldX: number; worldZ: number }> = [];
+  for (const it of worldItems) {
+    if (!it || it.picked) continue;
+    itemsForMap.push({ worldX: it.mesh.position.x, worldZ: it.mesh.position.z });
+  }
+  const lanternsForMap = lanterns.map((l) => ({
+    worldX: l.light.position.x,
+    worldZ: l.light.position.z,
+    lit: l.light.intensity > LANTERN_LIT_THRESHOLD,
+  }));
+  minimap.update({
+    player: { worldX: player.mesh.position.x, worldZ: player.mesh.position.z },
+    npcs: npcsForMap,
+    items: itemsForMap,
+    lanterns: lanternsForMap,
+  });
+}
+tickMinimap();
+
 function isEditableTarget(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
   if (!el) return false;
@@ -386,6 +421,12 @@ function frame(now: number) {
   fpsWindow[fpsWindowIdx] = dt;
   fpsWindowIdx = (fpsWindowIdx + 1) % FPS_WINDOW;
   if (fpsWindowFilled < FPS_WINDOW) fpsWindowFilled++;
+  minimapCounter++;
+  if (minimapCounter >= MINIMAP_RENDER_EVERY) {
+    minimapCounter = 0;
+    tickMinimap();
+  }
+
   fpsRenderCounter++;
   if (fpsRenderCounter >= FPS_RENDER_EVERY && isFpsOverlayVisible()) {
     fpsRenderCounter = 0;

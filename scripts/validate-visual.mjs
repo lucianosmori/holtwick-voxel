@@ -741,6 +741,64 @@ try {
     failed = true;
   }
 
+  // P7.3 minimap: top-left 150×150 2D canvas. Assert the element exists at
+  // the right size, the background was overpainted (static layer drew at
+  // least the road/plaza/tavern rects), and at least one player-colored pixel
+  // landed on top of the static layer (sanity-check for the dynamic update).
+  try {
+    const stats = await page.evaluate(() => {
+      const el = document.querySelector("canvas#minimap");
+      if (!el) return { error: "no canvas#minimap in DOM" };
+      const ctx = el.getContext("2d");
+      if (!ctx) return { error: "no 2D context on #minimap" };
+      const data = ctx.getImageData(0, 0, el.width, el.height).data;
+      const bins = new Map();
+      let total = 0;
+      let yellowish = 0; // player dot ≈ rgb(255, 216, 74)
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+        total++;
+        const key = (r << 16) | (g << 8) | b;
+        bins.set(key, (bins.get(key) ?? 0) + 1);
+        if (r > 220 && g > 180 && g < 235 && b < 120) yellowish++;
+      }
+      return {
+        width: el.width,
+        height: el.height,
+        clientW: el.clientWidth,
+        clientH: el.clientHeight,
+        uniqueBins: bins.size,
+        total,
+        yellowish,
+        cssDisplay: window.getComputedStyle(el).display,
+      };
+    });
+    if (stats?.error) throw new Error(stats.error);
+    if (stats.width !== 150 || stats.height !== 150) {
+      throw new Error(`minimap canvas wrong size: ${stats.width}x${stats.height}, expected 150x150`);
+    }
+    if (stats.cssDisplay === "none") {
+      throw new Error("#minimap is display:none");
+    }
+    // Static layer alone draws bg + 3 road/plaza/tavern colors at minimum;
+    // dynamic dots add 3–4 more (player, NPC, items, possibly lanterns).
+    if (stats.uniqueBins < 4) {
+      throw new Error(`minimap looks blank: only ${stats.uniqueBins} unique colors`);
+    }
+    if (stats.yellowish < 1) {
+      throw new Error("no player-colored pixel found on minimap — update() never fired?");
+    }
+    const minimapShot = `artifacts/screenshots/iter-${ITER}-minimap.png`;
+    await page.screenshot({ path: minimapShot, fullPage: true });
+    console.log(`[validate:visual] minimap screenshot -> ${minimapShot}`);
+    console.log(
+      `[validate:visual] P7.3 minimap OK (150x150, ${stats.uniqueBins} unique colors, ${stats.yellowish} player px)`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] minimap assert failed:", err?.message || err);
+    failed = true;
+  }
+
   // P7.2 NPC roster: the tavern cast grew from 7 → 12 with the new smith,
   // well-keeper, two merchants, and a plaza wanderer. Single-shot assertion
   // via the `__voxelTest__.getNpcCount()` hook — keeps the done-when criterion

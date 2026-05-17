@@ -501,17 +501,34 @@ mechanics that need design decisions overnight.
   around NPC cells, so the 500/800-attempt caps absorb the +5 without
   dropping spawned counts. Build green 513.06 kB (+3.32 kB vs iter 36).)
 
-- [ ] **P7.3** Minimap HUD (top-left, 150×150). Files:
-  `src/ui/minimap.ts` (new), HUD div in `index.html` + CSS.
-
-  **Render:** 2D canvas, world-to-pixel scale 1 voxel = 2px. Dark
-  background `#1a1f2c`. Plot: tavern outline (orange rect), plaza
-  (gray rect), road network (dim dirt color), player (yellow dot),
-  NPCs (cyan dots), items (small gold dots), lanterns (orange when
-  night). Re-draw every 10 frames.
-
-  **Done when:** Playwright screenshot shows a 150×150 div in the
-  top-left containing visible distinct dots/rects.
+- [x] ~~**P7.3** Minimap HUD (top-left, 150×150).~~ (iter 38 —
+  `src/ui/minimap.ts` `mountMinimap(gridOffset)` returns `{ update(frame) }`.
+  150×150 2D canvas; static layer (BG `#1a1f2c` + 7-wide N/S+E/W dirt
+  roads + 20×20 stone plaza + tavern outline as amber stroke +
+  translucent amber fill) pre-rendered once into an offscreen canvas at
+  mount, then per-update we `clearRect` + `drawImage(base)` + paint
+  dynamic dots: items (2×2 gold), lanterns (4×4 warm orange, only when
+  `intensity > 0.5`), NPCs (3×3 cyan), player (4×4 yellow on top).
+  World→cell conversion uses the gridOffset passed at mount so the
+  axes align with the voxel mesh. Static math imports `VILLAGE_WIDTH/
+  DEPTH` from village + `TAVERN_INTERIOR_WIDTH/DEPTH` from tavern;
+  village is 64×64 voxels → 128×128 px → 11px margin centres it inside
+  the 150 canvas. `index.html` adds `#minimap` canvas top-left (16px
+  inset, amber 1px border, opacity 0.9, `image-rendering: pixelated`,
+  `pointer-events: none` so it doesn't eat canvas clicks, z-index 5
+  matching the HUD). `main.ts` mounts after `gridOffset` is computed,
+  calls a one-shot `tickMinimap()` so the very first paint shows the
+  static layer + player dot, then increments a `MINIMAP_RENDER_EVERY=10`
+  counter inside the RAF loop and re-paints when it trips. Lit
+  threshold matches lantern peak (1.5 max, 0.5 cutoff catches dusk +
+  midnight). `validate-visual.mjs` P7.3 block: asserts `canvas#minimap`
+  is 150×150 + not display:none, reads `getImageData(0,0,150,150)`,
+  asserts ≥4 unique 24-bit colors (catches the silent-blank case where
+  the static layer never drew), asserts ≥1 yellowish pixel (r>220, g
+  180-235, b<120) so the dynamic update is also wired (catches the case
+  where only the static base layer ever renders). Captures
+  `iter-${ITER}-minimap.png`. Build green at 515.07 kB main bundle
+  (+1.64 kB vs iter 37's 513.06 kB).
 
 - [ ] **P7.4** Settings menu (gear icon top-right, modal). Files:
   `src/ui/settings.ts` (new), gear icon in `index.html` top-right

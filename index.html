@@ -449,6 +449,24 @@
       }
       #fps-overlay.show { display: block; }
 
+      /* Minimap (P7.3) — top-left 150×150 2D canvas. Pointer-events disabled
+         so canvas clicks still pass through; pixelated rendering preserves the
+         crisp 1-voxel = 2-pixel readout. */
+      #minimap {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        width: 150px;
+        height: 150px;
+        border: 1px solid rgba(255, 200, 80, 0.35);
+        border-radius: 6px;
+        background: #1a1f2c;
+        pointer-events: none;
+        image-rendering: pixelated;
+        opacity: 0.9;
+        z-index: 5;
+      }
+
       /* Pickup toast — ad-hoc bottom-center text for P6.3; replaced by the
          styled queue in P8.2. */
       #pickup-toast {
@@ -504,6 +522,8 @@
         <input id="hud-volume" type="range" min="0" max="100" value="50" />
       </div>
     </div>
+
+    <canvas id="minimap" width="150" height="150"></canvas>
 
     <div id="pickup-toast"></div>
 
