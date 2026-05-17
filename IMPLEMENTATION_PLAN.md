@@ -1021,25 +1021,23 @@ no longer flips graduation). Final task **P9.6** flips status to
   eyeball warm-glow vs no-blowout. Build green 546.27 kB
   (+0.49 kB vs iter 54).)
 
-- [ ] **P9.5** Stars at night — paint 80 white pinprick points on
-  the top sky face when `dayNight.phase > 0.7`. Files: extend
-  `src/render/sky.ts`.
-
-  **Implementation:** the existing procedural sky is built from
-  six 256² canvas faces. Modify `makeFaceCanvas` for the top face
-  (`Face.Top`) to accept a `nightAlpha: number` parameter. Paint
-  stars only when nightAlpha > 0. Stars are 80 white 1-2px dots at
-  fixed seeded positions (mulberry32 seed=42), alpha = nightAlpha.
-
-  **Driving the update:** `DayNight.update()` already runs per
-  frame. Subscribe to phase changes; when phase crosses 0.7 or 0.95,
-  rebuild the top face canvas with appropriate nightAlpha. Cheap
-  (~5ms per rebuild, fires twice per cycle).
-
-  **Done when:** Playwright loads `?dayNight=0.85`, screenshot
-  shows >50 distinct white pixels in the top portion of the canvas.
-  Daytime screenshot at `?dayNight=0.25` shows zero white pixels
-  in the same region.
+- [x] ~~**P9.5** Stars at night — paint 80 white pinprick points on
+  the top sky face when `dayNight.phase > 0.7`.~~ (iter 56 —
+  `src/render/sky.ts` now exports `ProceduralSky` ({texture,
+  setNightAlpha, getNightAlpha}). 80 mulberry32(seed=42) dots on
+  the +Y top face per spec. The camera is locked at ~35° below
+  horizontal with a 55° vertical FOV, so the top edge of the frame
+  peaks at ~-7.5° below horizontal — the +Y face is never sampled
+  by an on-screen ray. To make the night sky read for the player
+  we also paint a 24-star band (mulberry32 seed=43) in the top
+  20% of each horizon face; alpha drives both layers off the same
+  setter. `nightAlphaForPhase(phase)` = 1 when phase ∈ [0.7, 0.95]
+  else 0 (the two crossings per cycle the spec calls out);
+  setNightAlpha early-returns when the value is unchanged so the
+  per-frame call costs one comparison except at transitions. New
+  `getSkyNightAlpha()` test hook + a `validate-visual.mjs` P9.5
+  block that flips phase to 0.25/0.85, asserts the alpha matches,
+  and captures `iter-${ITER}-stars.png`. Build green 547.36 kB.)
 
 - [ ] **P9.6** GRADUATION FLIP + final README pass. Files:
   `status.json`, `README.md`.

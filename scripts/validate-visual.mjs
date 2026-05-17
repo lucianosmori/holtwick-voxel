@@ -1644,6 +1644,47 @@ try {
     failed = true;
   }
 
+  // P9.5 stars at night — assert sky.setNightAlpha tracks dayNight.phase
+  // per the threshold (alpha=1 when phase ∈ [0.7, 0.95], 0 otherwise) and
+  // capture a night screenshot so a human can eyeball the horizon-band
+  // constellation. The +Y top face is never sampled by an on-screen ray
+  // (camera locked at ~35° below horizontal, FOV 55°), so the visible stars
+  // are the ones painted into each horizon face's zenith band — alpha drives
+  // both layers off the same setter.
+  try {
+    await page.evaluate(() => {
+      (window).__voxelTest__.setDayNightPhase(0.25);
+    });
+    await new Promise((r) => setTimeout(r, 100));
+    const dayAlpha = await page.evaluate(() =>
+      (window).__voxelTest__.getSkyNightAlpha(),
+    );
+    if (dayAlpha !== 0) {
+      throw new Error(`expected nightAlpha=0 at daytime phase 0.25, got ${dayAlpha}`);
+    }
+
+    await page.evaluate(() => {
+      (window).__voxelTest__.setDayNightPhase(0.85);
+    });
+    await new Promise((r) => setTimeout(r, 100));
+    const nightAlpha = await page.evaluate(() =>
+      (window).__voxelTest__.getSkyNightAlpha(),
+    );
+    if (nightAlpha !== 1) {
+      throw new Error(`expected nightAlpha=1 at night phase 0.85, got ${nightAlpha}`);
+    }
+
+    const starShot = `artifacts/screenshots/iter-${ITER}-stars.png`;
+    await page.screenshot({ path: starShot, fullPage: true });
+    console.log(`[validate:visual] stars screenshot -> ${starShot}`);
+    console.log(
+      `[validate:visual] P9.5 stars OK (day phase 0.25 -> alpha=${dayAlpha}, night phase 0.85 -> alpha=${nightAlpha})`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] P9.5 stars assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);

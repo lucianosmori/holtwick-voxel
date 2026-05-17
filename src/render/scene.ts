@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { buildProceduralSky } from "./sky";
+import { buildProceduralSky, type ProceduralSky } from "./sky";
 
 export const CAMERA_PITCH_RAD = (55 * Math.PI) / 180;
 export const CAMERA_DISTANCE = 18;
@@ -17,6 +17,7 @@ export interface SceneBundle {
   canvas: HTMLCanvasElement;
   sun: THREE.DirectionalLight;
   hemi: THREE.HemisphereLight;
+  sky: ProceduralSky;
   resize: () => void;
   dispose: () => void;
 }
@@ -28,7 +29,8 @@ export function bootstrapScene(canvasSelector = "#game"): SceneBundle {
   }
 
   const scene = new THREE.Scene();
-  scene.background = buildProceduralSky();
+  const sky = buildProceduralSky();
+  scene.background = sky.texture;
 
   const camera = new THREE.PerspectiveCamera(
     55,
@@ -92,5 +94,5 @@ export function bootstrapScene(canvasSelector = "#game"): SceneBundle {
     renderer.dispose();
   };
 
-  return { scene, camera, renderer, canvas, sun, hemi, resize, dispose };
+  return { scene, camera, renderer, canvas, sun, hemi, sky, resize, dispose };
 }

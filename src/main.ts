@@ -56,8 +56,17 @@ import { buildIndoorCandles } from "./render/indoorLights";
 bindTitle();
 mountHud();
 
-const { scene, camera, renderer, canvas: gameCanvas, sun, hemi } = bootstrapScene("#game");
+const { scene, camera, renderer, canvas: gameCanvas, sun, hemi, sky } = bootstrapScene("#game");
 const dayNight = new DayNight(sun, hemi);
+
+// P9.5 — stars on the night sky. nightAlpha = 1 while phase ∈ [0.7, 0.95]
+// (per spec — covers the two crossings per cycle), 0 elsewhere. setNightAlpha
+// early-returns when the value hasn't changed, so calling it every frame
+// costs one comparison except at the two transitions per 120s cycle.
+function nightAlphaForPhase(phase: number): number {
+  return phase >= 0.7 && phase <= 0.95 ? 1 : 0;
+}
+sky.setNightAlpha(nightAlphaForPhase(dayNight.currentPhase));
 
 const VILLAGE_SEED = 1337;
 const world = buildVillage(VILLAGE_SEED);
@@ -391,6 +400,7 @@ if (isTestRun) {
     getPlayerY: () => number;
     getHillCount: () => number;
     getHillPositions: () => Array<{ cellX: number; cellZ: number; worldX: number; worldZ: number }>;
+    getSkyNightAlpha: () => number;
   }
   const hook: VoxelTestHook = {
     openDialog: (npcId?: string) => {
@@ -445,6 +455,7 @@ if (isTestRun) {
       dayNight.setPhase(p);
       updateLanterns(lanterns, dayNight.currentPhase);
       updateLampPosts(lampPosts, dayNight.currentPhase);
+      sky.setNightAlpha(nightAlphaForPhase(dayNight.currentPhase));
       setTimeOfDayLabel(dayNight.currentPhase);
     },
     getLanternIntensities: () =>
@@ -510,6 +521,7 @@ if (isTestRun) {
         worldX: gridOffset.x + h.cellX + 0.5,
         worldZ: gridOffset.z + h.cellZ + 0.5,
       })),
+    getSkyNightAlpha: () => sky.getNightAlpha(),
   };
   (window as unknown as { __voxelTest__?: VoxelTestHook }).__voxelTest__ = hook;
 }
@@ -591,6 +603,7 @@ function frame(now: number) {
   dayNight.update(dt);
   updateLanterns(lanterns, dayNight.currentPhase);
   updateLampPosts(lampPosts, dayNight.currentPhase);
+  sky.setNightAlpha(nightAlphaForPhase(dayNight.currentPhase));
   maybeStep(player.mesh.position.x, player.mesh.position.z);
   updateAmbient(dt, dayNight.currentPhase);
   for (const w of walkers) w.update(dt, player.mesh.position);
