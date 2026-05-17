@@ -1297,6 +1297,42 @@ try {
     failed = true;
   }
 
+  // P8.5 tavern sign + 4 lamp posts. Set the cycle to midnight so the lamps
+  // are at peak intensity, assert all 4 light up, that the sign mesh is in
+  // the scene, and capture a night screenshot showing the warm pools + sign.
+  try {
+    await page.evaluate(() => {
+      (window).__voxelTest__.setDayNightPhase(0.5);
+    });
+    const lampInfo = await page.evaluate(() => ({
+      hasSign: (window).__voxelTest__.hasTavernSign(),
+      lamps: (window).__voxelTest__.getLampIntensities(),
+    }));
+    if (!lampInfo.hasSign) throw new Error("tavern_sign mesh is not in scene");
+    if (!Array.isArray(lampInfo.lamps) || lampInfo.lamps.length !== 4) {
+      throw new Error(
+        `expected 4 lamp posts, got ${Array.isArray(lampInfo.lamps) ? lampInfo.lamps.length : typeof lampInfo.lamps}`,
+      );
+    }
+    const dim = lampInfo.lamps.filter((l) => l.intensity <= 0);
+    if (dim.length > 0) {
+      throw new Error(
+        `expected all 4 lamps lit at midnight, ${dim.length} were dim: ${JSON.stringify(dim)}`,
+      );
+    }
+    const decoShot = `artifacts/screenshots/iter-${ITER}-decorations.png`;
+    await page.screenshot({ path: decoShot, fullPage: true });
+    console.log(`[validate:visual] decorations screenshot -> ${decoShot}`);
+    console.log(
+      `[validate:visual] P8.5 decorations OK (tavern sign + 4 lamp posts lit at midnight, intensities ${lampInfo.lamps.map((l) => l.intensity.toFixed(2)).join(", ")})`,
+    );
+    // Restore to noon so subsequent gate assertions don't see the lights.
+    await page.evaluate(() => (window).__voxelTest__.setDayNightPhase(0));
+  } catch (err) {
+    console.error("[validate:visual] P8.5 decorations assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);

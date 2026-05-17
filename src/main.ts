@@ -48,6 +48,7 @@ import { SmokeEmitter } from "./render/particles";
 import { WaterAnimator } from "./world/waterAnim";
 import { mountMinimap } from "./ui/minimap";
 import { bindSettings } from "./ui/settings";
+import { buildLampPosts, buildTavernSign, updateLampPosts } from "./world/decorations";
 
 bindTitle();
 mountHud();
@@ -190,6 +191,16 @@ const lanterns = buildLanterns(gridOffset);
 for (const l of lanterns) scene.add(l.light);
 updateLanterns(lanterns, dayNight.currentPhase);
 
+// P8.5 decorations: tavern sign hung over the doorway + 4 lamp posts along
+// the N/S main road. Lamp lights follow the same dusk-onset curve as the
+// lanterns and are driven from the RAF loop below.
+const tavernSign = buildTavernSign(gridOffset);
+scene.add(tavernSign);
+const { postMesh: lampPostMesh, lamps: lampPosts } = buildLampPosts(gridOffset);
+scene.add(lampPostMesh);
+for (const l of lampPosts) scene.add(l.light);
+updateLampPosts(lampPosts, dayNight.currentPhase);
+
 // P8.4 chimney smoke + water bob. Smoke base = tavern roof centre in world
 // coords ((32, 5, 17) in grid) lifted onto worldMesh's gridOffset; emitter
 // recycles 16 sprites on a 4s lifecycle. Water animator binds to the
@@ -323,6 +334,8 @@ if (isTestRun) {
     toast: (text: string) => void;
     getSmokeSpritePositions: () => Array<{ x: number; y: number; z: number; opacity: number }>;
     getWaterInstanceYs: () => number[];
+    getLampIntensities: () => Array<{ label: string; intensity: number }>;
+    hasTavernSign: () => boolean;
   }
   const hook: VoxelTestHook = {
     openDialog: (npcId?: string) => {
@@ -369,10 +382,14 @@ if (isTestRun) {
     setDayNightPhase: (p) => {
       dayNight.setPhase(p);
       updateLanterns(lanterns, dayNight.currentPhase);
+      updateLampPosts(lampPosts, dayNight.currentPhase);
       setTimeOfDayLabel(dayNight.currentPhase);
     },
     getLanternIntensities: () =>
       lanterns.map((l) => ({ label: l.label, intensity: l.light.intensity })),
+    getLampIntensities: () =>
+      lampPosts.map((l) => ({ label: l.label, intensity: l.light.intensity })),
+    hasTavernSign: () => tavernSign.parent === scene,
     getNpcPosition: (id) => {
       const n = interactables.find((x) => x.id === id);
       return n ? { x: n.mesh.position.x, z: n.mesh.position.z } : null;
@@ -478,6 +495,7 @@ function frame(now: number) {
   player.update(dt);
   dayNight.update(dt);
   updateLanterns(lanterns, dayNight.currentPhase);
+  updateLampPosts(lampPosts, dayNight.currentPhase);
   maybeStep(player.mesh.position.x, player.mesh.position.z);
   updateAmbient(dt, dayNight.currentPhase);
   for (const w of walkers) w.update(dt, player.mesh.position);

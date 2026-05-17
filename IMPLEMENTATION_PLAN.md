@@ -717,21 +717,46 @@ at P9.6.
   `iter-${ITER}-smoke.png`. Build green 534.27 kB (+9.69 kB vs iter 46's
   524.58 kB — the smoke texture canvas + sprite material overhead).)
 
-- [ ] **P8.5** Tavern sign + lamp posts. Files:
-  `src/world/decorations.ts` (new).
-
-  **Tavern sign:** billboard plane (1.5×0.6) at tavern doorway
-  height 3, with a canvas-rendered "The Holtwick Tavern" text on a
-  wood-grain background. Faces south.
-
-  **Lamp posts:** 4 instanced cubes (1×4×1) along the main road,
-  spaced every 8 voxels. Each lamp gets a small PointLight at the
-  top (color `0xfff0a0`, intensity ramping with `dayNight.phase`
-  like P6.10's tavern lanterns).
-
-  **Done when:** Playwright screenshot at night shows the tavern
-  sign legible AND warm light pools from the 4 lamp posts along
-  the road.
+- [x] ~~**P8.5** Tavern sign + lamp posts.~~ (iter 48 —
+  `src/world/decorations.ts` exports `buildTavernSign(gridOffset)`
+  + `buildLampPosts(gridOffset)` + `updateLampPosts(lamps, phase)`
+  + `lampIntensityForPhase(phase)`. Sign is a 1.5×0.6
+  `PlaneGeometry` with a 256×102 canvas texture (deterministic
+  wood-grain horizontal lines + dark brown border + "The Holtwick
+  Tavern" in cream serif), positioned at world
+  `(gridOffset.x + 32.5, 3, gridOffset.z + 20.05)` so it hangs a
+  hair south of the south wall's outer face (TAVERN_ORIGIN_Z +
+  TAVERN_INTERIOR_DEPTH + 2 = 14 + 4 + 2 = 20), faces south by
+  default since `PlaneGeometry`'s normal is +Z and +Z is south in
+  this world's convention. Lamp posts are 4 `InstancedMesh`
+  instances of a shared 1×4×1 `BoxGeometry` with a dark
+  (`0x2a2520`) `MeshStandardMaterial` placed at cells
+  `(29,4)`, `(29,12)`, `(29,44)`, `(29,52)` — west edge of the
+  N/S road (cx=32, PATH_HALF=3 → road x=29..35), 8-voxel spacing,
+  z values pick out the road segments north of the tavern
+  (z=14..19) and south of the plaza ring (z=22..41) so no lamp
+  lands inside a building footprint. Each lamp gets a
+  `PointLight(0xfff0a0, 0, 6)` placed at world y=4.8 (post top
+  minus 0.2 so the bulb reads as glowing from the lantern, not
+  hovering above it); intensity is driven by `lampIntensityForPhase`
+  — same `-cos(phase·2π) + 0.3` ramp the [[lanterns]] use, capped
+  at `LAMP_MAX_INTENSITY=1.2` so the cluster ignites at dusk and
+  peaks at midnight in lockstep with the existing tavern/plaza
+  lanterns. `src/main.ts` adds the sign mesh + instanced post mesh
+  + 4 PointLights to scene, calls `updateLampPosts` once at boot
+  and once per RAF tick right after `updateLanterns`, and the
+  `?test=1` `setDayNightPhase` hook now drives both update
+  functions so the gate doesn't have to wait for animation. New
+  test hooks: `getLampIntensities()` returns 4 `{label, intensity}`
+  entries; `hasTavernSign()` returns `tavernSign.parent === scene`.
+  `scripts/validate-visual.mjs` adds a P8.5 block (right before
+  the final runtime-errors check) that warps the cycle to phase
+  0.5 (midnight), asserts `hasTavernSign` is true, asserts all 4
+  lamps have `intensity > 0` at midnight, captures
+  `iter-${ITER}-decorations.png`, then restores phase 0 so any
+  later asserts don't see the lights. Build green 536.35 kB
+  (+2.08 kB vs iter 47's 534.27 kB — the sign canvas texture +
+  shared box geometry + 4-instance matrix array).)
 
 - [ ] **P8.6** 4 more item types: `bread` (heal 10), `apple`
   (heal 5), `wooden_sword` (cosmetic, no effect yet), `wooden_shield`
