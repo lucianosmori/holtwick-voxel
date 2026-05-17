@@ -7,6 +7,7 @@ import { BillboardNpc, NPC_Y } from "./entities/npc";
 import { setupJoystick } from "./input/joystick";
 import { bindInteract, updateInteract, type InteractableNpc } from "./ui/interact";
 import { bindDialog, openDialog, closeDialog } from "./ui/dialog";
+import { bindInventory, openInventory, closeInventory, isInventoryOpen } from "./ui/inventory";
 import { NPC_SPAWNS } from "./data/npcSpawns";
 import type { NpcDef } from "./data/npc.schema";
 import { DayNight } from "./world/dayNight";
@@ -121,6 +122,7 @@ setupJoystick((v) => {
 });
 
 bindDialog(() => {});
+bindInventory();
 
 bindInteract((npc) => {
   const tavernNpc = interactables.find((n) => n.id === npc.id);
@@ -147,6 +149,9 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).get(
     getItemCount: (id: string) => number;
     getItemWorldPositions: () => ItemWorldPos[];
     addItem: (id: string, count?: number) => void;
+    openInventory: () => void;
+    closeInventory: () => void;
+    isInventoryOpen: () => boolean;
   }
   const hook: VoxelTestHook = {
     openDialog: (npcId?: string) => {
@@ -175,6 +180,9 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).get(
     addItem: (id, count = 1) => {
       addItem(id, count);
     },
+    openInventory,
+    closeInventory,
+    isInventoryOpen,
   };
   (window as unknown as { __voxelTest__?: VoxelTestHook }).__voxelTest__ = hook;
 }

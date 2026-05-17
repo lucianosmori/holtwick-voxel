@@ -166,21 +166,18 @@ the priority order.
   world entry flips to picked=true; captures `iter-${ITER}-pickup.png`. `npm run build`
   green.)
 
-- [ ] **P6.4** Inventory modal triggered by `I` key. Files:
-  `src/ui/inventory.ts` (new), `index.html` add `<div id="inventory-backdrop">`,
-  CSS in `<style>`.
-
-  **Key binding:** `I` opens modal. Gate by same `isEditableTarget`
-  check as KeyE in `interact.ts` so typing "i" into chat doesn't
-  trigger it. Escape closes (extend the existing escape handler in
-  `dialog.ts` or add a new one in `inventory.ts`).
-
-  **Layout:** 4×3 grid (12 slots), each slot 56×56px with item color
-  square (32×32) + name label below + count badge top-right. Empty
-  slots show a thin dashed border.
-
-  **Done when:** Playwright presses `I`, asserts modal visible; types
-  in chat input, presses `I`, asserts modal does NOT open (gate test).
+- [x] ~~**P6.4** Inventory modal triggered by `I` key.~~ (iter 26 —
+  `src/ui/inventory.ts` builds 12 fixed slots (4×3) into `#inventory-grid`,
+  `I` toggles open/close gated by `isEditableTarget` + dialog-open guard,
+  Escape closes, backdrop click closes, subscribes to `subscribeInventory`
+  so pickups refresh while open. `index.html` adds modal + CSS (56px slots,
+  32px color square, name label, count badge top-right, empty=dashed border,
+  z-index 110). `main.ts` calls `bindInventory()` + extends `__voxelTest__`
+  with `openInventory/closeInventory/isInventoryOpen`. `validate-visual.mjs`
+  post-pickup: presses KeyI, asserts 12 slots + ≥1 populated, captures
+  `iter-${ITER}-inventory.png`, Esc closes, then opens dialog → focuses
+  chat-input → presses KeyI → asserts `#inventory-backdrop.show` NOT set
+  AND chat-input value === "i". Build green 494.72 kB.)
 
 - [ ] **P6.5** Save/load to localStorage. Files: `src/game/save.ts` (new),
   `src/main.ts` wire load-on-boot + auto-save subscription.

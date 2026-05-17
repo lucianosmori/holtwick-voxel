@@ -308,6 +308,102 @@
       .hud-quest-complete { color: #8fd47a; }
       .hud-quest-in_progress { color: #ffd88a; }
 
+      /* Inventory modal (P6.4) — 4×3 grid of slots, toggled by `I` key. */
+      #inventory-backdrop {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 110;
+        align-items: center; justify-content: center;
+        padding: 20px;
+      }
+      #inventory-backdrop.show { display: flex; }
+      #inventory {
+        background: #1d2230;
+        border: 2px solid #4a5775;
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 280px;
+      }
+      #inventory-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #ffc850;
+        font-weight: 700;
+        font-size: 18px;
+      }
+      #inventory-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 56px);
+        gap: 8px;
+        justify-content: center;
+      }
+      .inv-slot {
+        position: relative;
+        width: 56px;
+        height: 56px;
+        background: #2a2f3d;
+        border: 1px solid #4a5775;
+        border-radius: 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding: 4px;
+        box-sizing: border-box;
+        overflow: hidden;
+      }
+      .inv-slot-empty {
+        background: transparent;
+        border: 1px dashed rgba(255, 255, 255, 0.18);
+      }
+      .inv-slot-color {
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        margin-top: 2px;
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,0.4);
+      }
+      .inv-slot-name {
+        margin-top: 2px;
+        font-size: 9px;
+        line-height: 1.1;
+        color: #d8e4ff;
+        text-align: center;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .inv-slot-count {
+        position: absolute;
+        top: 2px;
+        right: 3px;
+        font-size: 10px;
+        font-weight: 700;
+        color: #ffe9a8;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        background: rgba(0,0,0,0.55);
+        border-radius: 3px;
+        padding: 0 3px;
+        line-height: 1.3;
+      }
+      #inventory-close {
+        align-self: flex-end;
+        padding: 6px 14px;
+        background: #555;
+        border: none;
+        border-radius: 6px;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
       /* Pickup toast — ad-hoc bottom-center text for P6.3; replaced by the
          styled queue in P8.2. */
       #pickup-toast {
@@ -361,6 +457,16 @@
     </div>
 
     <div id="pickup-toast"></div>
+
+    <div id="inventory-backdrop" role="dialog" aria-modal="true" aria-label="Inventory">
+      <div id="inventory">
+        <div id="inventory-header">
+          <span>Inventory</span>
+        </div>
+        <div id="inventory-grid"></div>
+        <button id="inventory-close" type="button">Close</button>
+      </div>
+    </div>
 
     <div id="dialog-backdrop" role="dialog" aria-modal="true">
       <div id="dialog">

@@ -324,6 +324,75 @@ try {
     failed = true;
   }
 
+  // P6.4 inventory modal: `I` opens it, typing into chat input + pressing `I`
+  // does NOT open it (gate test). Assumes the P6.3 pickup test ran first so
+  // there is at least one populated stack to render.
+  try {
+    await page.keyboard.press("KeyI");
+    await page.waitForFunction(
+      () => document.querySelector("#inventory-backdrop")?.classList.contains("show"),
+      { timeout: 3000 },
+    );
+    const slotInfo = await page.evaluate(() => {
+      const slots = document.querySelectorAll("#inventory-grid .inv-slot");
+      const populated = document.querySelectorAll(
+        "#inventory-grid .inv-slot:not(.inv-slot-empty)",
+      ).length;
+      return { count: slots.length, populated };
+    });
+    if (slotInfo.count !== 12) {
+      throw new Error(`expected 12 inventory slots, got ${slotInfo.count}`);
+    }
+    if (slotInfo.populated < 1) {
+      throw new Error(
+        `expected ≥1 populated slot after pickup test, got ${slotInfo.populated}`,
+      );
+    }
+    const invShot = `artifacts/screenshots/iter-${ITER}-inventory.png`;
+    await page.screenshot({ path: invShot, fullPage: true });
+    console.log(`[validate:visual] inventory screenshot -> ${invShot}`);
+
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !document.querySelector("#inventory-backdrop.show"),
+      { timeout: 3000 },
+    );
+
+    // Gate test: open dialog → focus chat-input → press `I` → inventory must
+    // stay closed AND the `i` must land in the input.
+    await page.evaluate(() => (window).__voxelTest__.openDialog());
+    await page.waitForFunction(
+      () => document.querySelector("#dialog-backdrop")?.classList.contains("show"),
+      { timeout: 3000 },
+    );
+    await page.focus("#chat-input");
+    await page.evaluate(() => {
+      document.querySelector("#chat-input").value = "";
+    });
+    await page.keyboard.press("KeyI");
+    const inputVal = await page.locator("#chat-input").inputValue();
+    const invOpenWhileTyping = await page.evaluate(
+      () => !!document.querySelector("#inventory-backdrop.show"),
+    );
+    if (invOpenWhileTyping) {
+      throw new Error("inventory opened while typing 'i' into chat input");
+    }
+    if (inputVal !== "i") {
+      throw new Error(`expected chat input "i" after KeyI, got "${inputVal}"`);
+    }
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !document.querySelector("#dialog-backdrop.show"),
+      { timeout: 3000 },
+    );
+    console.log(
+      `[validate:visual] P6.4 inventory OK (12 slots, ${slotInfo.populated} populated, gated by chat input)`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] inventory flow assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);
