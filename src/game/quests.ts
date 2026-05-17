@@ -4,6 +4,7 @@
 
 import type { QuestDef, QuestState } from "../data/quest.schema";
 import { QUESTS, questById } from "../data/quests";
+import { getItemCount, subscribeInventory } from "./inventory";
 
 type Listener = () => void;
 
@@ -49,6 +50,15 @@ export function acceptQuest(id: string): boolean {
   state.status = "in_progress";
   state.accepted_at = Date.now();
   emit();
+  // P6.6 — collect quests can be accepted when the player already holds
+  // enough items (e.g. picked them up before talking to the giver). Complete
+  // immediately so the accept-then-already-done case doesn't get wedged.
+  if (
+    def.trigger.type === "collect" &&
+    getItemCount(def.trigger.item_id) >= def.trigger.count
+  ) {
+    completeQuest(id);
+  }
   return true;
 }
 
@@ -96,7 +106,38 @@ export function onTalkTo(npcId: string): string[] {
     if (!state || state.status !== "in_progress") continue;
     if (def.trigger.type === "talk_to" && def.trigger.npc_id === npcId) {
       if (completeQuest(def.id)) completed.push(def.id);
+      continue;
+    }
+    // P6.6 — collect quests also "deliver" on dialog open with the giver as a
+    // defensive fallback in case the inventory-subscription path missed (e.g.
+    // a quest accepted AFTER the items were already in inventory).
+    if (
+      def.trigger.type === "collect" &&
+      def.giver_npc_id === npcId &&
+      getItemCount(def.trigger.item_id) >= def.trigger.count
+    ) {
+      if (completeQuest(def.id)) completed.push(def.id);
     }
   }
   return completed;
+}
+
+// P6.6 — subscribe to inventory transitions so collect quests auto-complete
+// the moment the player's count crosses the threshold (no need to return to
+// the giver if you already have an in-progress collect quest). Idempotent.
+let collectBound = false;
+export function bindCollectAutoComplete(): void {
+  if (collectBound) return;
+  collectBound = true;
+  subscribeInventory((evt) => {
+    for (const def of QUESTS) {
+      if (def.trigger.type !== "collect") continue;
+      if (def.trigger.item_id !== evt.item_id) continue;
+      const state = states.get(def.id);
+      if (!state || state.status !== "in_progress") continue;
+      if (evt.total >= def.trigger.count) {
+        completeQuest(def.id);
+      }
+    }
+  });
 }

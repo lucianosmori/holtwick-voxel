@@ -275,18 +275,26 @@ the priority order.
   green 497.71 kB. CI gate's existing P6.5 inventory-count assertion will
   no longer trip on health_potion 1→2.)
 
-- [ ] **P6.6** Second quest: Finn the Smith → collect 3 iron ore. Files:
-  extend `src/data/quest.schema.ts` `trigger` union to add
-  `{ type: "collect"; item_id: string; count: number }`, add the quest
-  to `src/data/quests.ts`, update `src/game/quests.ts` state machine to
-  check inventory after every pickup for `collect`-type triggers.
-
-  **Quest:** `id: "finn_iron_ore"`, giver `"finn"`, trigger collect 3
-  `iron_ore`, reward 25 gold.
-
-  **Done when:** Playwright accepts Finn's quest, programmatically pushes
-  3 iron ore to inventory via a `__voxelTest__.addItem(id, count)` hook,
-  opens Finn's dialog, asserts quest auto-completes + 25 gold added.
+- [x] ~~**P6.6** Second quest: Finn → collect 3 iron ore.~~ (iter 29 —
+  `data/quest.schema.ts` `trigger` widened to a `QuestTrigger`
+  discriminated union adding `{type:"collect", item_id, count}`.
+  `data/quests.ts` appends `finn_iron_ore` (giver `finn`, collect 3
+  `iron_ore`, reward 25 gold; description has Finn-the-bard fetching on
+  Boran's behalf since the existing FINN is the bard and BORAN the smith
+  — lore-consistent rather than retconning Finn). `game/quests.ts`
+  imports `getItemCount` + `subscribeInventory` from `./inventory`
+  (one-way dep); `acceptQuest` immediately completes a collect quest if
+  the threshold was already met at accept-time; `onTalkTo(npcId)` also
+  auto-completes in_progress collect quests whose giver is `npcId` when
+  inventory threshold met (defensive fallback); new idempotent
+  `bindCollectAutoComplete()` subscribes to `subscribeInventory` and
+  completes any in_progress collect quest whose total crossed `count`.
+  `main.ts` calls `bindCollectAutoComplete()` after `bindInventory()`,
+  post applySave so restore's delta=0 emits don't double-process.
+  `validate-visual.mjs` post-save/load: snapshot gold,
+  `acceptQuest("finn_iron_ore")` (asserts in_progress), `addItem("iron_ore", 3)`,
+  asserts quest auto-completed AND gold == before+25, opens Finn's
+  dialog + captures `iter-${ITER}-collect.png`. Build green 498.38 kB.)
 
 - [ ] **P6.7** NPC pathing — 3 NPCs walk waypoints. Files:
   `src/entities/npcWalker.ts` (new), `src/data/npcSpawns.ts` add optional

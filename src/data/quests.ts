@@ -13,6 +13,15 @@ export const QUESTS: QuestDef[] = [
     trigger: { type: "talk_to", npc_id: "aldric" },
     reward: { gold: 10 },
   },
+  {
+    id: "finn_iron_ore",
+    giver_npc_id: "finn",
+    title: "Iron for the Forge",
+    description:
+      "Finn runs errands for Boran between sets — three iron ore should keep the anvil ringing.",
+    trigger: { type: "collect", item_id: "iron_ore", count: 3 },
+    reward: { gold: 25 },
+  },
 ];
 
 export function questById(id: string): QuestDef | undefined {

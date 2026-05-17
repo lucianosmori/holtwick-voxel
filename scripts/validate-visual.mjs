@@ -498,6 +498,69 @@ try {
     failed = true;
   }
 
+  // P6.6 collect-quest flow: accept Finn's "Iron for the Forge" quest, push 3
+  // iron_ore via __voxelTest__.addItem, assert the quest auto-completes and
+  // gold jumped by +25 (the Finn reward). Done after the save/load block so
+  // the chromium profile has whatever state P6.5 left us with — the
+  // auto-completer fires on the addItem regardless of pre-state.
+  try {
+    const goldBefore = await page.evaluate(() =>
+      (window).__voxelTest__.getGold(),
+    );
+    const accepted = await page.evaluate(() =>
+      (window).__voxelTest__.acceptQuest("finn_iron_ore"),
+    );
+    if (!accepted) {
+      throw new Error("acceptQuest('finn_iron_ore') returned false");
+    }
+    const afterAccept = await page.evaluate(() =>
+      (window).__voxelTest__.getQuestState("finn_iron_ore"),
+    );
+    if (afterAccept?.status !== "in_progress") {
+      throw new Error(
+        `quest should be in_progress after accept, got ${JSON.stringify(afterAccept)}`,
+      );
+    }
+    await page.evaluate(() =>
+      (window).__voxelTest__.addItem("iron_ore", 3),
+    );
+    const afterCollect = await page.evaluate(() =>
+      (window).__voxelTest__.getQuestState("finn_iron_ore"),
+    );
+    if (afterCollect?.status !== "complete") {
+      throw new Error(
+        `quest should auto-complete after collecting 3 iron_ore, got ${JSON.stringify(afterCollect)}`,
+      );
+    }
+    const goldAfter = await page.evaluate(() =>
+      (window).__voxelTest__.getGold(),
+    );
+    if (goldAfter !== goldBefore + 25) {
+      throw new Error(
+        `gold expected ${goldBefore + 25} (was ${goldBefore} +25 reward), got ${goldAfter}`,
+      );
+    }
+    await page.evaluate(() => (window).__voxelTest__.openDialog("finn"));
+    await page.waitForFunction(
+      () => document.querySelector("#dialog-backdrop")?.classList.contains("show"),
+      { timeout: 3000 },
+    );
+    const collectShot = `artifacts/screenshots/iter-${ITER}-collect.png`;
+    await page.screenshot({ path: collectShot, fullPage: true });
+    console.log(`[validate:visual] collect screenshot -> ${collectShot}`);
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !document.querySelector("#dialog-backdrop.show"),
+      { timeout: 3000 },
+    );
+    console.log(
+      `[validate:visual] P6.6 collect quest OK (finn_iron_ore complete, gold ${goldBefore} → ${goldAfter})`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] collect quest flow assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);

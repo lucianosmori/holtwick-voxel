@@ -13,7 +13,7 @@ import type { NpcDef } from "./data/npc.schema";
 import { DayNight } from "./world/dayNight";
 import { bindTitle } from "./ui/title";
 import { mountHud } from "./ui/hud";
-import { acceptQuest, getGold, getQuestState, getQuests } from "./game/quests";
+import { acceptQuest, bindCollectAutoComplete, getGold, getQuestState, getQuests } from "./game/quests";
 import { itemById } from "./data/items";
 import { addItem, getInventory, getItemCount, isPicked, markPicked, type InventoryStack } from "./game/inventory";
 import { ITEM_BASE_Y, PICKUP_RADIUS, WorldItem } from "./entities/worldItem";
@@ -158,6 +158,11 @@ setupJoystick((v) => {
 
 bindDialog(() => scheduleSave());
 bindInventory();
+
+// P6.6 — subscribe collect-quest auto-completer to inventory transitions.
+// Bound after applySave so the restore's delta=0 emits do not double-process
+// quests that were already complete at save time.
+bindCollectAutoComplete();
 
 // P6.5 auto-save: source provides live player XZ + dayNight phase; the
 // module subscribes to quest + inventory transitions on its own and runs a

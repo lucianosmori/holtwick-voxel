@@ -1,12 +1,16 @@
-// Quest schema. Locked by IMPLEMENTATION_PLAN.md P6.1; trigger union expands
-// in later iters (collect → P6.6, deliver/walk_to → P8.7).
+// Quest schema. Locked by IMPLEMENTATION_PLAN.md P6.1; trigger union expanded
+// at P6.6 to add `collect` (deliver/walk_to land with P8.7).
+
+export type QuestTrigger =
+  | { type: "talk_to"; npc_id: string }
+  | { type: "collect"; item_id: string; count: number };
 
 export interface QuestDef {
   id: string;
   giver_npc_id: string;
   title: string;
   description: string;
-  trigger: { type: "talk_to"; npc_id: string };
+  trigger: QuestTrigger;
   reward: { gold: number };
 }
 
