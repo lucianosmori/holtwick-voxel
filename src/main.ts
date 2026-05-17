@@ -269,6 +269,7 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).get(
     setDayNightPhase: (p: number) => void;
     getLanternIntensities: () => Array<{ label: string; intensity: number }>;
     getNpcPosition: (id: string) => { x: number; z: number } | null;
+    getNpcCount: () => number;
   }
   const hook: VoxelTestHook = {
     openDialog: (npcId?: string) => {
@@ -322,6 +323,7 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).get(
       const n = interactables.find((x) => x.id === id);
       return n ? { x: n.mesh.position.x, z: n.mesh.position.z } : null;
     },
+    getNpcCount: () => interactables.length,
   };
   (window as unknown as { __voxelTest__?: VoxelTestHook }).__voxelTest__ = hook;
 }

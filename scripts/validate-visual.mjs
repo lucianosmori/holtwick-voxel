@@ -741,6 +741,23 @@ try {
     failed = true;
   }
 
+  // P7.2 NPC roster: the tavern cast grew from 7 → 12 with the new smith,
+  // well-keeper, two merchants, and a plaza wanderer. Single-shot assertion
+  // via the `__voxelTest__.getNpcCount()` hook — keeps the done-when criterion
+  // from the plan satisfied cheaply without re-rendering all NPCs in a shot.
+  try {
+    const npcCount = await page.evaluate(() =>
+      (window).__voxelTest__.getNpcCount(),
+    );
+    if (npcCount !== 12) {
+      throw new Error(`expected 12 NPCs after P7.2, got ${npcCount}`);
+    }
+    console.log(`[validate:visual] P7.2 roster OK (${npcCount} NPCs spawned)`);
+  } catch (err) {
+    console.error("[validate:visual] NPC roster assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);

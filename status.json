@@ -1,10 +1,10 @@
 {
     "updated_at":  "2026-05-17",
-    "iteration":  36,
+    "iteration":  37,
     "started_at":  "2026-05-12T00:00:00Z",
     "experiment":  "holtwick-voxel",
     "consecutive_no_progress":  0,
     "last_error":  null,
     "status":  "exploring",
-    "last_outcome":  "P7.1 done — `src/world/buildings.ts` stamps three new structures into the village grid: blacksmith forge (6×6 plank ring at (18,20) with east-side doorway at z=22 + single `VOXEL_STONE` anvil at interior centre + plank floor), village well (radius-2 stone ring at y=1 around (46,30) + `VOXEL_WATER` at centre y=0), and 2 market stalls at (20,36) + (24,36) (4 plank corner posts y=1..2 + 3×2 plank canopy at y=3, open-sided). `village.ts` calls `addBuildings(grid)` after `addTavern` and bumps `VILLAGE_HEIGHT` from 3 to 4 (= `1 + Math.max(TAVERN_WALL_HEIGHT, BUILDINGS_MAX_Y=3)`) so the y=3 canopy fits. `entities/player.ts` `hitsWall` now restricts its column scan to the player's torso y range (`yLo = floor(PLAYER_Y - half)`, `yHi = floor(PLAYER_Y + half)`) so the overhead canopy doesn't wall off the cells beneath the stall — keeps existing wall behaviour at y=1..2 unchanged. Build green 509.74 kB (+1.31 kB vs iter 35). Visual gate runs in CI on push. Next: P7.2 (5 more tavern NPCs spawned at new buildings)."
+    "last_outcome":  "P7.2 done — 5 new tavern-cast NPCs (KARSTEN apprentice smith at blacksmith interior (21,22), HILDA well-keeper at (46,28), PETRA baker at market stall 1 (21,36), RONAN messenger at market stall 2 (25,36), DORIN miner at plaza centre (28,32)). Dungeon corpus is all hostile mobs so the 5 were authored as fresh NpcDefs in `src/data/tavernCast.ts` with cross-referencing barks (Karsten↔Boran, Petra↔Edda/Cassia, Ronan↔Aldric, Dorin↔Boran/Edda) so the village feels coherent. Stall NPCs nudged off the plan's corner positions onto interior x cells between posts to avoid billboard clipping. `TAVERN_CAST` + `NPC_SPAWNS` extended (7→12). `main.ts` `__voxelTest__` gained `getNpcCount()`. `validate-visual.mjs` adds P7.2 block asserting `getNpcCount() === 12`. Item + foliage spawn generators already buffer NPC cells; 500/800-attempt caps absorb the +5 without dropping counts. Build green 513.06 kB (+3.32 kB vs iter 36). Next: P7.3 (minimap HUD, top-left 150×150 canvas)."
 }

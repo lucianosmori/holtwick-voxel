@@ -4,7 +4,10 @@
 // batch is unblocked (P3.1b — currently blocked on credit top-up).
 
 import type { NpcDef } from "./npc.schema";
-import { EDDA, FINN, ALDRIC, MIREILLE, BORAN, WREN, CASSIA } from "./tavernCast";
+import {
+  EDDA, FINN, ALDRIC, MIREILLE, BORAN, WREN, CASSIA,
+  KARSTEN, HILDA, PETRA, RONAN, DORIN,
+} from "./tavernCast";
 
 export interface PathWaypoint {
   cellX: number;
@@ -60,4 +63,13 @@ export const NPC_SPAWNS: NpcSpawn[] = [
   { def: BORAN,    cellX: 36, cellZ: 22, background: "#8b6b3a" }, // outside tavern, south of door
   { def: WREN,     cellX: 50, cellZ: 38, background: "#b89870" }, // east edge, near stables
   { def: MIREILLE, cellX: 18, cellZ: 46, background: "#5e8a4a" }, // pond edge, herb garden
+  // P7.2 — 5 new NPCs anchored on the P7.1 buildings (blacksmith, well,
+  // 2 market stalls, plaza). Cell coords chosen so each NPC stands on a
+  // walkable cell inside/adjacent to their landmark without clipping a
+  // wall post or stall corner.
+  { def: KARSTEN,  cellX: 21, cellZ: 22, background: "#a86b2a" }, // blacksmith interior, next to anvil
+  { def: HILDA,    cellX: 46, cellZ: 28, background: "#5a6878" }, // 2 cells north of well centre
+  { def: PETRA,    cellX: 21, cellZ: 36, background: "#c89a5e" }, // market stall 1, between posts
+  { def: RONAN,    cellX: 25, cellZ: 36, background: "#4a5e7a" }, // market stall 2, between posts
+  { def: DORIN,    cellX: 28, cellZ: 32, background: "#6e6258" }, // plaza centre, between Aldric + Cassia
 ];

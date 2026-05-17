@@ -482,23 +482,24 @@ mechanics that need design decisions overnight.
   wall off the cells beneath it. Build green at 509.74 kB. Visual gate
   runs in CI on push.)
 
-- [ ] **P7.2** 5 more tavern NPCs (lifted from existing
-  `data/npcs/*.json` corpus). Files: extend `src/data/tavernCast.ts`
-  + `src/data/npcSpawns.ts`. Pick 5 NPCs from the 31-NPC corpus whose
-  role fits a village (skip "Goblin Berserker" etc.). Suggested:
-  `dorin_the_miner`, `hilda_the_herbalist`, `karsten_the_smith`,
-  `ronan_the_messenger`, `petra_the_baker` — or substitute equivalents
-  if IDs don't exist in the corpus.
-
-  **Spawn positions** (use new buildings from P7.1):
-  - smith → at blacksmith doorway `(21, 22)`
-  - well-keeper → next to well `(46, 28)`
-  - merchant1 → at market stall 1 `(20, 36)`
-  - merchant2 → at market stall 2 `(24, 36)`
-  - wanderer → on plaza `(28, 32)`
-
-  **Done when:** Playwright `__voxelTest__.getNpcCount()` returns 12
-  (was 7 → +5 = 12).
+- [x] ~~**P7.2** 5 more tavern NPCs.~~ (iter 37 — 31-NPC corpus
+  is all hostile mobs (rats, ghouls, liches, demons), no village roles to
+  lift verbatim; authored 5 fresh NpcDefs in `src/data/tavernCast.ts`
+  matching the EDDA/FINN/etc pattern: `KARSTEN` (apprentice smith at
+  blacksmith interior `(21,22)` next to the anvil), `HILDA` (well-keeper
+  at `(46,28)` 2 cells north of well centre), `PETRA` (baker at market
+  stall 1 `(21,36)` between posts), `RONAN` (messenger/courier at market
+  stall 2 `(25,36)` between posts), `DORIN` (wandering miner on plaza
+  centre `(28,32)`). Spawn coords nudged off the plan's `(20,36)/(24,36)`
+  stall-corner positions onto the interior x cells between the 4 corner
+  posts so billboards don't clip the plank posts. Barks_idle reference
+  existing NPCs (Karsten ↔ Boran, Dorin ↔ Boran+Edda, Petra ↔ Edda+Cassia,
+  Ronan ↔ Aldric) so the chat reads like a real village. `TAVERN_CAST`
+  + `NPC_SPAWNS` extended; `main.ts` `__voxelTest__` gained
+  `getNpcCount(): number`. `validate-visual.mjs` adds P7.2 block asserting
+  `getNpcCount() === 12`. Item + foliage exclusion buffers already widen
+  around NPC cells, so the 500/800-attempt caps absorb the +5 without
+  dropping spawned counts. Build green 513.06 kB (+3.32 kB vs iter 36).)
 
 - [ ] **P7.3** Minimap HUD (top-left, 150×150). Files:
   `src/ui/minimap.ts` (new), HUD div in `index.html` + CSS.
