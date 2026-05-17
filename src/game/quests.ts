@@ -4,7 +4,7 @@
 
 import type { QuestDef, QuestState } from "../data/quest.schema";
 import { QUESTS, questById } from "../data/quests";
-import { getItemCount, subscribeInventory } from "./inventory";
+import { addItem, getItemCount, subscribeInventory } from "./inventory";
 
 type Listener = () => void;
 
@@ -68,7 +68,10 @@ export function completeQuest(id: string): boolean {
   if (!def || !state || state.status !== "in_progress") return false;
   state.status = "complete";
   state.completed_at = Date.now();
-  gold += def.reward.gold;
+  if (def.reward.gold) gold += def.reward.gold;
+  if (def.reward.items) {
+    for (const r of def.reward.items) addItem(r.item_id, r.count);
+  }
   emit();
   return true;
 }

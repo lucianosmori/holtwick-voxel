@@ -1027,6 +1027,71 @@ try {
     failed = true;
   }
 
+  // P7.7 bren_5_coins: Finn's collect-quest with an item reward (1
+  // health_potion). Snapshots health_potion count, accepts the quest, pushes
+  // 5 gold_coin via the test hook, asserts the quest auto-completes and the
+  // potion landed in inventory (gold unchanged — non-gold reward path).
+  try {
+    const potionBefore = await page.evaluate(() =>
+      (window).__voxelTest__.getItemCount("health_potion"),
+    );
+    const goldBefore = await page.evaluate(() =>
+      (window).__voxelTest__.getGold(),
+    );
+    const accepted = await page.evaluate(() =>
+      (window).__voxelTest__.acceptQuest("bren_5_coins"),
+    );
+    if (!accepted) {
+      throw new Error("acceptQuest('bren_5_coins') returned false");
+    }
+    await page.evaluate(() =>
+      (window).__voxelTest__.addItem("gold_coin", 5),
+    );
+    const afterCollect = await page.evaluate(() =>
+      (window).__voxelTest__.getQuestState("bren_5_coins"),
+    );
+    if (afterCollect?.status !== "complete") {
+      throw new Error(
+        `bren_5_coins should auto-complete after collecting 5 gold_coin, got ${JSON.stringify(afterCollect)}`,
+      );
+    }
+    const potionAfter = await page.evaluate(() =>
+      (window).__voxelTest__.getItemCount("health_potion"),
+    );
+    if (potionAfter !== potionBefore + 1) {
+      throw new Error(
+        `health_potion expected ${potionBefore + 1} (was ${potionBefore} +1 reward), got ${potionAfter}`,
+      );
+    }
+    const goldAfter = await page.evaluate(() =>
+      (window).__voxelTest__.getGold(),
+    );
+    if (goldAfter !== goldBefore) {
+      throw new Error(
+        `gold should be unchanged for item-reward quest (was ${goldBefore}, got ${goldAfter})`,
+      );
+    }
+    await page.evaluate(() => (window).__voxelTest__.openDialog("finn"));
+    await page.waitForFunction(
+      () => document.querySelector("#dialog-backdrop")?.classList.contains("show"),
+      { timeout: 3000 },
+    );
+    const coinsShot = `artifacts/screenshots/iter-${ITER}-coins.png`;
+    await page.screenshot({ path: coinsShot, fullPage: true });
+    console.log(`[validate:visual] coins screenshot -> ${coinsShot}`);
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !document.querySelector("#dialog-backdrop.show"),
+      { timeout: 3000 },
+    );
+    console.log(
+      `[validate:visual] P7.7 bren_5_coins OK (accept → +5 gold_coin → complete, health_potion ${potionBefore} → ${potionAfter}, gold unchanged @${goldAfter})`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] bren_5_coins quest assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);

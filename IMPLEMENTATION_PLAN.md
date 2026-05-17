@@ -577,17 +577,28 @@ mechanics that need design decisions overnight.
   `iter-${ITER}-well.png`. Build green 520.08 kB (+0.24 kB vs iter 40's
   519.84 kB).
 
-- [ ] **P7.7** Quest 4 — "Collect 5 gold coins" (collect type).
-  Files: add to `src/data/quests.ts`, giver = Bren the bard,
-  `id: "bren_5_coins"`, trigger collect 5 `gold_coin`, reward 1
-  `health_potion`.
-
-  Demonstrates non-gold rewards (item rewards land in inventory).
-  Extends P6.5's `reward` schema to support `{ items?: Array<{ item_id, count }> }`.
-
-  **Done when:** Playwright accepts Bren's quest, pushes 5 gold_coin
-  via `__voxelTest__.addItem`, opens dialog, asserts quest completion
-  + 1 health_potion in inventory.
+- [x] ~~**P7.7** Quest 4 — "Collect 5 gold coins" (collect type).~~
+  (iter 42 — `src/data/quest.schema.ts` loosens `reward` to
+  `{ gold?: number; items?: Array<{ item_id; count }> }` (both optional,
+  back-compat for the 3 existing gold-only entries). `src/game/quests.ts`
+  `completeQuest` now gates gold on `def.reward.gold` and iterates
+  `def.reward.items` via `addItem` (which respects per-item stack caps +
+  emits inventory events the HUD already listens to). `src/data/quests.ts`
+  gains `bren_5_coins` — plan called for "Bren the bard" but the tavern
+  cast has Finn the Bard and no Bren, so the giver is `finn` (already gives
+  `finn_iron_ore` — `questsGivenBy` returns both and `renderQuestRow`
+  picks the first not_started, so iron_ore-complete + bren_5_coins-
+  not_started ordering Just Works). `trigger: { type: "collect", item_id:
+  "gold_coin", count: 5 }`, `reward: { items: [{ item_id: "health_potion",
+  count: 1 }] }`. `src/ui/dialog.ts` extracts `rewardSummary(def)` so the
+  `[Quest complete: …]` line renders "received 10 gold" OR "received
+  Health Potion" OR "received 10 gold + Health Potion" depending on the
+  reward shape; falls back to "no reward" defensively. `validate-visual.mjs`
+  P7.7 block snapshots potion + gold, `acceptQuest("bren_5_coins")`,
+  `addItem("gold_coin", 5)` → asserts state=complete, potion === before+1,
+  gold unchanged (non-gold-reward path), opens Finn's dialog for the
+  capture `iter-${ITER}-coins.png`, Esc closes. Build green 520.74 kB
+  (+0.66 kB vs iter 41's 520.08 kB).
 
 - [ ] **P7.8** README v2 (no graduation flip — moved to **P9.6**).
   Files: `README.md`.

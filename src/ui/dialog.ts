@@ -7,6 +7,8 @@
 import type { NpcDef } from "../data/npc.schema";
 import { streamProxyReply, warmupProxy } from "../chat/proxy";
 import { questsGivenBy, questById } from "../data/quests";
+import type { QuestDef } from "../data/quest.schema";
+import { itemById } from "../data/items";
 import { acceptQuest, getQuestState, onTalkTo } from "../game/quests";
 
 let bound = false;
@@ -61,10 +63,7 @@ export function openDialog(npc: NpcDef): void {
   for (const qid of onTalkTo(npc.id)) {
     const def = questById(qid);
     if (def) {
-      appendMessage(
-        "assistant",
-        `[Quest complete: ${def.title} — received ${def.reward.gold} gold]`,
-      );
+      appendMessage("assistant", `[Quest complete: ${def.title} — ${rewardSummary(def)}]`);
     }
   }
 
@@ -153,6 +152,18 @@ async function handleSend(): Promise<void> {
     streaming = false;
     send.disabled = false;
   }
+}
+
+function rewardSummary(def: QuestDef): string {
+  const parts: string[] = [];
+  if (def.reward.gold) parts.push(`${def.reward.gold} gold`);
+  if (def.reward.items) {
+    for (const r of def.reward.items) {
+      const name = itemById(r.item_id)?.name ?? r.item_id;
+      parts.push(r.count > 1 ? `${r.count}× ${name}` : name);
+    }
+  }
+  return parts.length ? `received ${parts.join(" + ")}` : "no reward";
 }
 
 function pickRandom<T>(arr: readonly T[]): T | undefined {

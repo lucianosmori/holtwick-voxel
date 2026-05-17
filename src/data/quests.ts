@@ -31,6 +31,18 @@ export const QUESTS: QuestDef[] = [
     trigger: { type: "talk_to", npc_id: "hilda" },
     reward: { gold: 5 },
   },
+  {
+    // Plan called for "Bren the bard" but no NPC by that name exists in the
+    // tavern cast; Finn IS the bard, so he gets the second quest. Demonstrates
+    // item rewards (health_potion lands in inventory, no gold awarded).
+    id: "bren_5_coins",
+    giver_npc_id: "finn",
+    title: "Coins for a Song",
+    description:
+      "Finn says five gold coins jingling in his cap inspire a brand-new ballad. Drop them in and he'll trade you a vial of Mireille's healing tonic.",
+    trigger: { type: "collect", item_id: "gold_coin", count: 5 },
+    reward: { items: [{ item_id: "health_potion", count: 1 }] },
+  },
 ];
 
 export function questById(id: string): QuestDef | undefined {
