@@ -44,6 +44,8 @@ import {
 } from "./audio/ambient";
 import { maybeStep, resetFootstepCursor } from "./audio/footsteps";
 import { buildLanterns, updateLanterns } from "./render/lanterns";
+import { SmokeEmitter } from "./render/particles";
+import { WaterAnimator } from "./world/waterAnim";
 import { mountMinimap } from "./ui/minimap";
 import { bindSettings } from "./ui/settings";
 
@@ -188,6 +190,17 @@ const lanterns = buildLanterns(gridOffset);
 for (const l of lanterns) scene.add(l.light);
 updateLanterns(lanterns, dayNight.currentPhase);
 
+// P8.4 chimney smoke + water bob. Smoke base = tavern roof centre in world
+// coords ((32, 5, 17) in grid) lifted onto worldMesh's gridOffset; emitter
+// recycles 16 sprites on a 4s lifecycle. Water animator binds to the
+// `voxel:VOXEL_WATER` InstancedMesh inside worldMesh and jitters Y per
+// instance each frame — both updates run from the RAF loop below.
+const smoke = new SmokeEmitter(
+  new THREE.Vector3(gridOffset.x + 32.5, 5, gridOffset.z + 17.5),
+);
+scene.add(smoke.group);
+const waterAnim = new WaterAnimator(worldMesh);
+
 // P7.3 minimap — initialised after gridOffset so world→cell conversion uses
 // the same anchor the voxel mesh + lanterns do. Re-rendered every 10 frames
 // from the RAF loop below; the static layer (bg + roads + plaza + tavern
@@ -308,6 +321,8 @@ if (isTestRun) {
     getBarkTexts: () => string[];
     getPropPositions: () => Array<{ type: string; cellX: number; cellZ: number; x: number; z: number }>;
     toast: (text: string) => void;
+    getSmokeSpritePositions: () => Array<{ x: number; y: number; z: number; opacity: number }>;
+    getWaterInstanceYs: () => number[];
   }
   const hook: VoxelTestHook = {
     openDialog: (npcId?: string) => {
@@ -381,6 +396,8 @@ if (isTestRun) {
         z: gridOffset.z + p.cellZ + 0.5,
       })),
     toast: (text: string) => pushToast(text),
+    getSmokeSpritePositions: () => smoke.getSpritePositions(),
+    getWaterInstanceYs: () => waterAnim.getInstanceYs(),
   };
   (window as unknown as { __voxelTest__?: VoxelTestHook }).__voxelTest__ = hook;
 }
@@ -468,6 +485,8 @@ function frame(now: number) {
   for (const it of worldItems) {
     if (it && !it.picked) it.update(t);
   }
+  smoke.update(t);
+  waterAnim.update(t);
   checkPickups();
   updateCamera();
   faceBillboards();

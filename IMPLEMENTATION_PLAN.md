@@ -687,21 +687,35 @@ at P9.6.
   0.85→Night) via the test hook and asserts each label round-trips through
   `#hud-time`. Build green 524.58 kB (+0.33 kB vs iter 45's 524.25 kB).
 
-- [ ] **P8.4** Animated water + chimney smoke (combined). Files:
-  `src/world/waterAnim.ts` (new), `src/render/particles.ts` (new),
-  hooks into main RAF loop.
-
-  **Water:** per-frame Y-jitter on water `InstancedMesh` instances:
-  `y = baseY + sin((t + i * 0.3) * 1.5) * 0.05`. Subtle bob.
-
-  **Chimney smoke:** Sprite-batched 16 fade-up gray sprites above
-  the tavern roof at `(32, 5, 17)` (tavern center top). Each sprite
-  lifecycles 4s: spawn at base, drift up + slightly outward, scale
-  up 0.5→1.5x, opacity 0.7→0. Recycle.
-
-  **Done when:** Playwright captures 2 screenshots 1s apart; asserts
-  at least 3 pixels at chimney coord differ between frames (smoke
-  motion) AND at least 1 water voxel y-position differs.
+- [x] ~~**P8.4** Animated water + chimney smoke (combined).~~ (iter 47
+  — `src/world/waterAnim.ts` `WaterAnimator(worldMesh)` finds the
+  `voxel:5` (VOXEL_WATER) InstancedMesh inside the voxel group, snapshots
+  per-instance baseY into a Float32Array on construction, and on
+  `update(t)` writes `baseY + sin((t + i*0.3) * 1.5) * 0.05` per instance
+  with one decompose/compose pass and `instanceMatrix.needsUpdate = true`.
+  `src/render/particles.ts` `SmokeEmitter(basePosition)` builds a
+  64×64 radial-gray CanvasTexture (sRGB) shared across 16 `THREE.Sprite`s
+  with `transparent: true`, `depthWrite: false`. Initial spawn phases are
+  staggered by `i * (LIFETIME/SPRITE_COUNT)` so the column reads as a
+  continuous trail at t=0 instead of all 16 pulsing in lockstep. Each
+  sprite's outward drift direction is fixed at construction
+  (`cos(angle)*DRIFT`, `sin(angle)*DRIFT` for `angle = i/16 * 2π`) so the
+  trail spreads radially as it rises. `update(t)` recycles by computing
+  `age = (t + phaseOffset) mod 4`, then `f = age/4`, writing position
+  `(base.x + driftX*f, base.y + 2.5*f, base.z + driftZ*f)`, scale
+  `0.5 + f*1.0` (uniform XY), and material opacity `0.7 * (1-f)`.
+  `src/main.ts` constructs the emitter at world-coord
+  `(gridOffset.x + 32.5, 5, gridOffset.z + 17.5)` (tavern roof centre
+  per spec, lifted onto worldMesh's gridOffset), `scene.add(smoke.group)`,
+  binds `WaterAnimator(worldMesh)`, and both `smoke.update(t)` +
+  `waterAnim.update(t)` fire from the RAF loop right after `worldItems`
+  update (same `t = (now - bootMs)/1000` second clock). Test hook
+  surfaces `getSmokeSpritePositions()` (16 entries with x/y/z/opacity)
+  + `getWaterInstanceYs()` (per-instance Y array). `validate-visual.mjs`
+  P8.4 block snaps both arrays, waits 1000ms, snaps again, asserts ≥1
+  water Y delta and ≥3 smoke sprite position deltas, captures
+  `iter-${ITER}-smoke.png`. Build green 534.27 kB (+9.69 kB vs iter 46's
+  524.58 kB — the smoke texture canvas + sprite material overhead).)
 
 - [ ] **P8.5** Tavern sign + lamp posts. Files:
   `src/world/decorations.ts` (new).

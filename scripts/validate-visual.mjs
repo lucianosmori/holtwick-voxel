@@ -1245,6 +1245,58 @@ try {
     failed = true;
   }
 
+  // P8.4 animated water + chimney smoke. Snap test-hook state twice ~1s
+  // apart and assert at least one water voxel's Y shifted and at least 3
+  // smoke sprite positions changed (they each tick on the RAF loop, so
+  // every sprite should move — 3 is the floor in case of scheduler jitter
+  // or the unlikely case where the loop happens to sample the exact same
+  // sin-wave phase).
+  try {
+    const before = await page.evaluate(() => ({
+      water: (window).__voxelTest__.getWaterInstanceYs(),
+      smoke: (window).__voxelTest__.getSmokeSpritePositions(),
+    }));
+    if (!Array.isArray(before.water) || before.water.length === 0) {
+      throw new Error(`expected water instances, got ${JSON.stringify(before.water)}`);
+    }
+    if (!Array.isArray(before.smoke) || before.smoke.length !== 16) {
+      throw new Error(
+        `expected 16 smoke sprites, got ${Array.isArray(before.smoke) ? before.smoke.length : typeof before.smoke}`,
+      );
+    }
+    await wait(1000);
+    const after = await page.evaluate(() => ({
+      water: (window).__voxelTest__.getWaterInstanceYs(),
+      smoke: (window).__voxelTest__.getSmokeSpritePositions(),
+    }));
+    let waterDiffs = 0;
+    for (let i = 0; i < before.water.length; i++) {
+      if (Math.abs(after.water[i] - before.water[i]) > 1e-4) waterDiffs++;
+    }
+    if (waterDiffs < 1) {
+      throw new Error(`expected ≥1 water voxel Y to differ after 1s, got 0`);
+    }
+    let smokeDiffs = 0;
+    for (let i = 0; i < before.smoke.length; i++) {
+      const dy = Math.abs(after.smoke[i].y - before.smoke[i].y);
+      const dx = Math.abs(after.smoke[i].x - before.smoke[i].x);
+      const dz = Math.abs(after.smoke[i].z - before.smoke[i].z);
+      if (dy + dx + dz > 1e-4) smokeDiffs++;
+    }
+    if (smokeDiffs < 3) {
+      throw new Error(`expected ≥3 smoke sprites to move after 1s, got ${smokeDiffs}`);
+    }
+    const smokeShot = `artifacts/screenshots/iter-${ITER}-smoke.png`;
+    await page.screenshot({ path: smokeShot, fullPage: true });
+    console.log(`[validate:visual] smoke screenshot -> ${smokeShot}`);
+    console.log(
+      `[validate:visual] P8.4 animation OK (water diffs=${waterDiffs}/${before.water.length}, smoke diffs=${smokeDiffs}/16)`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] P8.4 animation assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);
