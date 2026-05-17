@@ -17,6 +17,14 @@ import { acceptQuest, getGold, getQuestState, getQuests } from "./game/quests";
 import { itemById } from "./data/items";
 import { addItem, getInventory, getItemCount, type InventoryStack } from "./game/inventory";
 import { ITEM_BASE_Y, PICKUP_RADIUS, WorldItem } from "./entities/worldItem";
+import {
+  applySave,
+  bindAutoSave,
+  clearSave,
+  flushSave,
+  loadSave,
+  scheduleSave,
+} from "./game/save";
 
 bindTitle();
 mountHud();
@@ -34,6 +42,21 @@ scene.add(worldMesh);
 const player = new Player(world, gridOffset);
 player.attachKeyboard();
 scene.add(player.mesh);
+
+// P6.5 load-on-boot: restore player XZ + dayNight phase + quests + inventory
+// + gold from localStorage before the first frame renders. HUD already
+// subscribed via mountHud() above so the quest restore re-renders it
+// immediately.
+const restored = loadSave();
+if (restored) {
+  applySave(restored, {
+    setPlayerXZ: (x, z) => {
+      player.mesh.position.x = x;
+      player.mesh.position.z = z;
+    },
+    setDayNightPhase: (p) => dayNight.setPhase(p),
+  });
+}
 
 interface InteractableTavernNpc extends InteractableNpc {
   def: NpcDef;
@@ -121,8 +144,16 @@ setupJoystick((v) => {
   player.setJoystick(v.active ? v.x : null, v.active ? v.y : undefined);
 });
 
-bindDialog(() => {});
+bindDialog(() => scheduleSave());
 bindInventory();
+
+// P6.5 auto-save: source provides live player XZ + dayNight phase; the
+// module subscribes to quest + inventory transitions on its own and runs a
+// 30s heartbeat tick. Writes coalesce through a 500ms debounce.
+bindAutoSave({
+  getPlayerXZ: () => ({ x: player.mesh.position.x, z: player.mesh.position.z }),
+  getDayNightPhase: () => dayNight.currentPhase,
+});
 
 bindInteract((npc) => {
   const tavernNpc = interactables.find((n) => n.id === npc.id);
@@ -152,6 +183,9 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).get(
     openInventory: () => void;
     closeInventory: () => void;
     isInventoryOpen: () => boolean;
+    flushSave: () => void;
+    clearSave: () => void;
+    getDayNightPhase: () => number;
   }
   const hook: VoxelTestHook = {
     openDialog: (npcId?: string) => {
@@ -183,6 +217,9 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).get(
     openInventory,
     closeInventory,
     isInventoryOpen,
+    flushSave,
+    clearSave,
+    getDayNightPhase: () => dayNight.currentPhase,
   };
   (window as unknown as { __voxelTest__?: VoxelTestHook }).__voxelTest__ = hook;
 }

@@ -179,32 +179,30 @@ the priority order.
   chat-input → presses KeyI → asserts `#inventory-backdrop.show` NOT set
   AND chat-input value === "i". Build green 494.72 kB.)
 
-- [ ] **P6.5** Save/load to localStorage. Files: `src/game/save.ts` (new),
-  `src/main.ts` wire load-on-boot + auto-save subscription.
-
-  **Format** (single localStorage key `holtwick-voxel:save:v1`):
-  ```typescript
-  interface SaveV1 {
-    version: 1;
-    player: { x: number; z: number };
-    dayNight: number;
-    quests: Record<string, QuestState>;
-    inventory: Array<{ item_id: string; count: number }>;
-    gold: number;
-    saved_at: number;
-  }
-  ```
-
-  **Auto-save triggers:** every 30 seconds via `setInterval`; on quest
-  state change; on item pickup; on dialog close. Coalesce rapid writes
-  with a 500ms debounce. **Load on boot:** if save exists and version
-  matches, apply to player position + dayNight phase + quests + inventory
-  + gold before first frame render. If version mismatches, clear the key
-  and start fresh (don't try to migrate).
-
-  **Done when:** Playwright accepts a quest, navigates the page to the
-  same URL (forced reload), asserts the quest log shows the accepted
-  quest after reload.
+- [x] ~~**P6.5** Save/load to localStorage.~~ (iter 27 —
+  `src/game/save.ts` `SaveV1 {version:1, player:{x,z}, dayNight, quests,
+  inventory, gold, saved_at}` under `holtwick-voxel:save:v1`. `loadSave()`
+  drops on parse error or version mismatch; `applySave()` calls back into
+  `restoreQuestsState()` (new, in `game/quests.ts` — rehydrates the map +
+  emits so the HUD re-renders) and `restoreInventory()` (new, in
+  `game/inventory.ts` — discards unknown item ids + clamps to stack cap +
+  emits a delta=0 pickup per stack so any open modal refreshes), and
+  applies player XZ + dayNight phase via injected setters. `dayNight.ts`
+  gains `setPhase(p)` that no-ops when the `?dayNight=` URL override is
+  active so headless screenshots stay locked. `bindAutoSave()` subscribes
+  to `subscribeQuests` + `subscribeInventory`, runs a 30s heartbeat tick,
+  and coalesces writes through a 500ms debounce; `bindDialog`'s onClose
+  also triggers `scheduleSave()`. `main.ts` calls `loadSave()` +
+  `applySave()` between player construction and world-item spawn (HUD
+  already subscribed via earlier `mountHud()` so the restore emit
+  re-renders the panel), then `bindAutoSave()` after dialog/inventory
+  binds. `__voxelTest__` extended with `flushSave/clearSave/getDayNightPhase`.
+  `validate-visual.mjs` adds a post-inventory P6.5 block: flush save,
+  `page.reload()`, re-wait for data-engine + `__voxelTest__`, assert
+  quest status still complete + gold still 10 + the picked-up stack
+  matches, plus HUD shows `Gold: 10` / `Quests (1)` / `Find Aldric`, then
+  `clearSave()` so the chromium profile stays clean for re-runs. Build
+  green at 497.16 kB.)
 
 - [ ] **P6.6** Second quest: Finn the Smith → collect 3 iron ore. Files:
   extend `src/data/quest.schema.ts` `trigger` union to add

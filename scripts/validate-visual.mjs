@@ -393,6 +393,97 @@ try {
     failed = true;
   }
 
+  // P6.5 save/load: after the quest/pickup/inventory flow above, force-flush
+  // the save and reload the page. Restored state must include the completed
+  // quest + 10 gold + the picked-up item stack. Done-when criterion from
+  // IMPLEMENTATION_PLAN.md: "Playwright accepts a quest, navigates the page
+  // to the same URL (forced reload), asserts the quest log shows the
+  // accepted quest after reload."
+  try {
+    const preReload = await page.evaluate(() => {
+      const hook = (window).__voxelTest__;
+      hook.flushSave();
+      return {
+        gold: hook.getGold(),
+        questStatus: hook.getQuestState("edda_find_aldric")?.status,
+        inventory: hook.getInventory(),
+      };
+    });
+    if (preReload.questStatus !== "complete") {
+      throw new Error(`pre-reload quest status expected complete, got ${preReload.questStatus}`);
+    }
+    if (preReload.gold !== 10) {
+      throw new Error(`pre-reload gold expected 10, got ${preReload.gold}`);
+    }
+    if (!Array.isArray(preReload.inventory) || preReload.inventory.length === 0) {
+      throw new Error(`pre-reload inventory should be populated, got ${JSON.stringify(preReload.inventory)}`);
+    }
+
+    await page.reload({ waitUntil: "networkidle", timeout: 20000 });
+    await page.waitForFunction(
+      () => {
+        const c = document.querySelector("canvas#game");
+        return !!c && c.hasAttribute("data-engine") && !!(window).__voxelTest__;
+      },
+      { timeout: 10000, polling: 100 },
+    );
+    await wait(400);
+
+    const restored = await page.evaluate(() => {
+      const hook = (window).__voxelTest__;
+      return {
+        gold: hook.getGold(),
+        questStatus: hook.getQuestState("edda_find_aldric")?.status,
+        inventory: hook.getInventory(),
+      };
+    });
+    if (restored.questStatus !== "complete") {
+      throw new Error(`post-reload quest status expected complete, got ${restored.questStatus}`);
+    }
+    if (restored.gold !== 10) {
+      throw new Error(`post-reload gold expected 10, got ${restored.gold}`);
+    }
+    const expectedStack = preReload.inventory[0];
+    const restoredStack = restored.inventory.find((s) => s.item_id === expectedStack.item_id);
+    if (!restoredStack || restoredStack.count !== expectedStack.count) {
+      throw new Error(
+        `post-reload inventory mismatch for ${expectedStack.item_id}: ` +
+          `expected ${expectedStack.count}, got ${JSON.stringify(restoredStack)}`,
+      );
+    }
+
+    const hudAfter = await page.evaluate(() => ({
+      gold: document.querySelector("#hud-gold")?.textContent?.trim() ?? "",
+      count: document.querySelector("#hud-quest-count")?.textContent?.trim() ?? "",
+      rows: Array.from(document.querySelectorAll("#hud-quest-list .hud-quest"))
+        .map((el) => el.textContent?.trim() ?? ""),
+    }));
+    if (hudAfter.gold !== "Gold: 10") {
+      throw new Error(`post-reload HUD gold expected "Gold: 10", got "${hudAfter.gold}"`);
+    }
+    if (hudAfter.count !== "Quests (1)") {
+      throw new Error(`post-reload HUD count expected "Quests (1)", got "${hudAfter.count}"`);
+    }
+    if (hudAfter.rows.length !== 1 || !hudAfter.rows[0].includes("Find Aldric")) {
+      throw new Error(`post-reload HUD rows expected the completed quest, got ${JSON.stringify(hudAfter.rows)}`);
+    }
+
+    const reloadShot = `artifacts/screenshots/iter-${ITER}-reload.png`;
+    await page.screenshot({ path: reloadShot, fullPage: true });
+    console.log(`[validate:visual] reload screenshot -> ${reloadShot}`);
+    console.log(
+      `[validate:visual] P6.5 save/load OK (quest=${restored.questStatus}, gold=${restored.gold}, ` +
+        `inv=${restored.inventory.length} stack(s) survived reload)`,
+    );
+
+    // Clean up so a re-run on the same chromium profile doesn't carry the
+    // save into the next iter's fresh-boot expectations.
+    await page.evaluate(() => (window).__voxelTest__.clearSave());
+  } catch (err) {
+    console.error("[validate:visual] save/load flow assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);

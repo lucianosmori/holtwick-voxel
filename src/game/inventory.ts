@@ -53,3 +53,20 @@ export function addItem(id: string, count: number = 1): PickupEvent | null {
 export function resetInventory(): void {
   counts.clear();
 }
+
+// Replace the inventory from a snapshot (load-on-boot). Unknown item ids and
+// counts beyond the per-item stack cap are discarded. Emits a `delta=0` pickup
+// event per restored stack so any open inventory UI re-renders.
+export function restoreInventory(stacks: InventoryStack[]): void {
+  counts.clear();
+  for (const s of stacks ?? []) {
+    if (!s || typeof s.item_id !== "string" || !Number.isFinite(s.count)) continue;
+    const def = itemById(s.item_id);
+    if (!def) continue;
+    const n = Math.max(0, Math.min(Math.floor(s.count), def.stack));
+    if (n > 0) counts.set(s.item_id, n);
+  }
+  for (const [item_id, total] of counts) {
+    for (const l of listeners) l({ item_id, delta: 0, total });
+  }
+}

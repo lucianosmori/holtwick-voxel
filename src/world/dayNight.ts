@@ -88,4 +88,15 @@ export class DayNight {
   get currentPhase(): number {
     return this.phaseOverride ?? (this.elapsed / this.cycleSeconds);
   }
+
+  // Restore the cycle to a saved phase (load-on-boot). Skipped when the
+  // `?dayNight=` URL override is active so headless screenshots stay locked
+  // at the requested time-of-day.
+  setPhase(phase: number): void {
+    if (this.phaseOverride !== null) return;
+    if (!Number.isFinite(phase)) return;
+    const wrapped = ((phase % 1) + 1) % 1;
+    this.elapsed = wrapped * this.cycleSeconds;
+    this.apply(wrapped);
+  }
 }
