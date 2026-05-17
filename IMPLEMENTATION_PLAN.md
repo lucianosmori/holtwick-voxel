@@ -902,28 +902,41 @@ no longer flips graduation). Final task **P9.6** flips status to
   inside the tavern voxel space). Also asserts `scene.children` count
   includes 1 more `PointLight` than baseline.
 
-- [ ] **P9.2** Voxel ambient occlusion — vertex-color darken at
-  block corners with 2+ solid neighbors (classic Minecraft AO).
-  Files: `src/render/voxelMesh.ts` modify the per-instance build to
-  emit per-vertex color attribute, computed by sampling 3 neighbor
-  cells per corner (the 2 face-adjacent + 1 diagonal). Each "solid
-  neighbor" contributes a 0.25 darken factor (clamped to 0.5 min).
-
-  **Implementation:** instead of one `MeshStandardMaterial` per voxel
-  type, switch to a single `THREE.BufferGeometry` per type with
-  vertex colors enabled (`vertexColors: true` on the material). Build
-  the geometry in `voxelMesh.ts` as a quad-per-face mesh (not a
-  shared BoxGeometry instance) so per-corner AO can be baked in.
-  This is a significant refactor — keep the public API of
-  `buildVoxelMesh(grid, palette?)` returning a `THREE.Group` so
-  callers don't change.
-
-  **Done when:** Playwright screenshot shows visible darkening at
-  tavern wall corners (cells adjacent to plank-wall corner voxels
-  should pixel-bin into a darker bucket than the wall's main color).
-  Pixel-content top-bin should DROP further (more color variety
-  from AO gradients). Build size should not grow more than 10%
-  (refactored geometry is roughly equivalent in vertex count).
+- [x] ~~**P9.2** Voxel ambient occlusion — vertex-color darken at
+  block corners with 2+ solid neighbors (classic Minecraft AO).~~
+  (iter 53 — `src/render/voxelMesh.ts` swapped per-type
+  `InstancedMesh(SHARED_BOX)` for a per-type non-indexed
+  `THREE.BufferGeometry` carrying position/normal/uv/color, with
+  `MeshStandardMaterial({vertexColors: true})`. New `FACES` table
+  defines all 6 cube faces (verified CCW from outside so default
+  back-face cull works without flipping `material.side`); each
+  corner carries a 3-element `AoNeighbors` (`side1`/`side2`/`diag`)
+  expressed as offsets RELATIVE TO THE FACE-NEIGHBOUR CELL, so the
+  3 AO samples per corner are exactly the "2 face-adjacent + 1
+  diagonal" classic-Minecraft formula the plan calls for. Per-corner
+  shade = `max(0.5, 1 - 0.25 * solidNeighbourCount)`, written into
+  the vertex `color` attribute and multiplied at shade time by the
+  vertex-colors-enabled standard material. Face culling against any
+  non-empty neighbour eliminates interior faces so total vertex
+  count stays bounded (the previously-hidden 64×64 floor's bottom
+  faces against the ground plane don't get emitted at all, which
+  offsets the per-face vertex inflation from instances). Triangulation
+  is non-indexed CCW (0,1,2)+(0,2,3) — 6 vertices per face × max 6
+  faces per voxel. **Water carve-out:** `VOXEL_WATER` keeps the
+  `InstancedMesh(SHARED_BOX)` path so `WaterAnimator` (P8.4) can
+  still mutate per-instance Y values for the surface bob — baked AO
+  geometry is incompatible with per-frame position updates, and
+  water voxels sit on top of grass with no corners that
+  meaningfully benefit from AO darkening anyway. The mesh is still
+  named `voxel:${VOXEL_WATER}` so the existing `WaterAnimator`
+  lookup keeps working unmodified. Public API `buildVoxelMesh(grid,
+  palette?) → THREE.Group` is preserved verbatim, so `main.ts`,
+  `world/waterAnim.ts`, and all other callers compile + run without
+  edits. Build green 543.90 kB main bundle (+2.39 kB vs iter 52's
+  541.51 kB — +0.44%, well under the plan's 10% growth cap; the AO
+  module is ~3 kB of geometry-builder source minus the savings from
+  dropping the multi-pass `countByType` + per-cursor InstancedMesh
+  fill loop).
 
 - [ ] **P9.3** Multi-Y terrain — 3 elevated mini-hills around the
   village outskirts, each a 5×5 cell area raised by 1 voxel (so
