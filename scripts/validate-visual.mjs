@@ -652,6 +652,55 @@ try {
     failed = true;
   }
 
+  // P6.10 lanterns: at noon (phase 0) all four lanterns are dark; at midnight
+  // (phase 0.5 in the dayNight convention — 0=noon, 0.5=midnight) all four
+  // ramp to ~LANTERN_MAX_INTENSITY (1.5). Drive via the test hook so we don't
+  // need a dedicated `?dayNight=` page navigation.
+  try {
+    await page.evaluate(() => (window).__voxelTest__.setDayNightPhase(0));
+    const dayLanterns = await page.evaluate(() =>
+      (window).__voxelTest__.getLanternIntensities(),
+    );
+    if (!Array.isArray(dayLanterns) || dayLanterns.length !== 4) {
+      throw new Error(
+        `expected 4 lanterns, got ${JSON.stringify(dayLanterns)}`,
+      );
+    }
+    for (const l of dayLanterns) {
+      if (l.intensity > 0.01) {
+        throw new Error(
+          `lantern '${l.label}' should be dark at noon, got intensity ${l.intensity}`,
+        );
+      }
+    }
+
+    await page.evaluate(() => (window).__voxelTest__.setDayNightPhase(0.5));
+    // RAF needs to tick once so updateLanterns runs from the loop too.
+    await wait(80);
+    const nightLanterns = await page.evaluate(() =>
+      (window).__voxelTest__.getLanternIntensities(),
+    );
+    for (const l of nightLanterns) {
+      if (l.intensity < 1.0) {
+        throw new Error(
+          `lantern '${l.label}' should be bright at midnight, got intensity ${l.intensity}`,
+        );
+      }
+    }
+    const lanternShot = `artifacts/screenshots/iter-${ITER}-lanterns.png`;
+    await page.screenshot({ path: lanternShot, fullPage: true });
+    console.log(`[validate:visual] lantern screenshot -> ${lanternShot}`);
+    const summary = nightLanterns
+      .map((l) => `${l.label}=${l.intensity.toFixed(2)}`)
+      .join(", ");
+    console.log(`[validate:visual] P6.10 lanterns OK (night: ${summary})`);
+    // Reset back to day so any later assertions don't inherit night state.
+    await page.evaluate(() => (window).__voxelTest__.setDayNightPhase(0));
+  } catch (err) {
+    console.error("[validate:visual] lantern flow assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);

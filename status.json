@@ -1,10 +1,10 @@
 {
     "updated_at":  "2026-05-17",
-    "iteration":  32,
+    "iteration":  33,
     "started_at":  "2026-05-12T00:00:00Z",
     "experiment":  "holtwick-voxel",
     "consecutive_no_progress":  0,
     "last_error":  null,
     "status":  "exploring",
-    "last_outcome":  "P6.9 done — trees + foliage. `src/world/foliage.ts` `computeFoliage(seed, grid, npcCells, itemCells, count=30)` walks a `mulberry32(villageSeed + 7331)` stream so trees don't reshuffle when items or NPCs move; rejects unless ground is `VOXEL_FLOOR` (grass) AND the column above is empty, enforces Chebyshev 8-cell plaza buffer + 2-cell road buffer (5×5 scan for any `VOXEL_DIRT` cell) + 3-cell NPC buffer + 3-cell item buffer, 800-attempt cap. `buildFoliageMesh(trees)` returns a `THREE.Group` with two InstancedMeshes — trunk uses Kenney `Dark/texture_05.png` (same dirt swatch the dirt voxel uses) for 4 cubes per tree at world y centres 1.5..4.5; canopy uses flat `0x2f6b22` (darker than the grass texture's dominant bin so foliage adds new pixel-content bins) for 8 cubes per tree: 4 orthogonal cells per layer × 2 layers at y centres 3.5 and 4.5 — the 3×3 plus-shape minus its centre. `main.ts` computes `trees` after `itemSpawns`, builds the mesh, positions it at `gridOffset` so tree cells line up 1:1 with floor cells. Build green 505.51 kB (+2.0 kB vs iter 31's 503.50 kB). Next: P6.10 lantern night lighting."
+    "last_outcome":  "P6.10 done — lantern night lighting. `src/render/lanterns.ts` `buildLanterns(gridOffset)` returns 4 warm-orange (0xffb070) `THREE.PointLight`s, range 6, max intensity 1.5, mounted at world y=3 over cells: tavern-doorway (one south of `TAVERN_DOORWAY_X`), plaza NE/NW/SE corners (derived from PLAZA_HALF=10 around village centre 32,32). `lanternIntensityForPhase(p)` reuses the sun's elevation curve (`cos(p*2π)`) shifted +0.3 so lanterns ignite at ~70% sun-fall (dusk pool reads before full dark), peaks at midnight, symmetric falloff through dawn — matched to dayNight's real convention (0=noon, 0.25=dusk, 0.5=midnight, 0.75=dawn). `main.ts` adds the 4 lights to the scene, calls `updateLanterns` once pre-RAF + every frame after `dayNight.update(dt)`. `__voxelTest__` extended with `setDayNightPhase(p)` + `getLanternIntensities()`. `validate-visual.mjs` P6.10 block drives noon → all dark, drives midnight → all ≥1.0, captures `iter-${ITER}-lanterns.png`, resets to noon. Build green 507.66 kB (+2.15 kB vs iter 32). Next: P6.11 FPS counter overlay (backtick toggle)."
 }

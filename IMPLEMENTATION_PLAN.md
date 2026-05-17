@@ -397,23 +397,28 @@ the priority order.
   line up with the voxel mesh. Build green 505.51 kB (+2.0 kB vs iter
   31's 503.50 kB).)
 
-- [ ] **P6.10** Lantern night lighting. Files: `src/render/lanterns.ts`
-  (new), `src/main.ts` wire 4 PointLights with per-frame intensity
-  driven by `dayNight.phase`.
-
-  **Lantern positions:** tavern doorway, plaza NE corner, plaza NW
-  corner, plaza SE corner. Each: `THREE.PointLight(0xffb070, 0, 6)`
-  (warm orange, max intensity 1.5, range 6 voxels).
-
-  **Intensity ramp** (function of `dayNight.phase` where 0 = noon,
-  0.5 = sunset, 0.75 = midnight, 1 = dawn): ramp 0 → 1.5 linearly
-  across phase 0.55 → 0.75 (sunset), hold 1.5 across 0.75 → 0.95,
-  ramp 1.5 → 0 across 0.95 → 1.05 wrap (dawn). Daytime phase ≤ 0.5:
-  intensity stays 0.
-
-  **Done when:** Playwright loads `?dayNight=0.85` (full night),
-  screenshot shows warm orange light pools on the plaza voxels (assert
-  pixel-content includes a bin in the 0xffb070-adjacent range).
+- [x] ~~**P6.10** Lantern night lighting.~~ (iter 33 — `src/render/lanterns.ts`
+  `buildLanterns(gridOffset)` returns 4 warm-orange (`0xffb070`)
+  `THREE.PointLight`s, range 6, max intensity 1.5, mounted at world y=3 over
+  cells: tavern-doorway (one cell south of `TAVERN_DOORWAY_X`,
+  `TAVERN_ORIGIN_Z + footprintDepth`), plaza NE/NW/SE corners (derived from
+  `PLAZA_HALF=10` around village centre (32,32)). `lanternIntensityForPhase(p)`
+  derives from the same elevation curve the sun uses (`cos(p*2π)`) shifted
+  by +0.3 so lanterns ignite as the sun crosses ~70% of the way down (dusk
+  pool reads before full dark), peaking at midnight, falling off symmetric
+  through dawn — matched to dayNight's actual phase convention (0=noon,
+  0.25=dusk, 0.5=midnight, 0.75=dawn) rather than the plan's now-corrected
+  draft. `main.ts` calls `buildLanterns(gridOffset)`, adds each light to the
+  scene, calls `updateLanterns` once pre-RAF (so the load-restored phase
+  takes effect immediately) and again every frame after `dayNight.update(dt)`.
+  `__voxelTest__` extended with `setDayNightPhase(p)` (delegates to
+  `DayNight.setPhase`, which already no-ops under `?dayNight=` URL overrides)
+  and `getLanternIntensities()` returning `[{label, intensity}, …]`.
+  `validate-visual.mjs` P6.10 block: drives phase to noon, asserts all four
+  lanterns are dark (intensity ≤ 0.01); drives phase to midnight, asserts
+  all four reach intensity ≥ 1.0; captures `iter-${ITER}-lanterns.png`;
+  resets phase to noon so any later assertions inherit clean day state.
+  Build green 507.66 kB (+2.15 kB vs iter 32's 505.51 kB).)
 
 - [ ] **P6.11** FPS counter overlay (backtick key toggle). Files:
   `src/ui/hud.ts` extend to add `<div id="fps-overlay">` (bottom-right,

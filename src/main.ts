@@ -34,6 +34,7 @@ import {
   updateAmbient,
 } from "./audio/ambient";
 import { maybeStep, resetFootstepCursor } from "./audio/footsteps";
+import { buildLanterns, updateLanterns } from "./render/lanterns";
 
 bindTitle();
 mountHud();
@@ -144,6 +145,13 @@ const trees = computeFoliage(
 const foliageMesh = buildFoliageMesh(trees);
 foliageMesh.position.copy(gridOffset);
 scene.add(foliageMesh);
+
+// P6.10 lantern night lighting. Four warm PointLights — tavern doorway plus
+// three plaza corners — ramp from 0 by day to ~1.5 by midnight, driven by
+// dayNight.currentPhase in the RAF loop below.
+const lanterns = buildLanterns(gridOffset);
+for (const l of lanterns) scene.add(l.light);
+updateLanterns(lanterns, dayNight.currentPhase);
 
 const PICKUP_DIST_SQ = (PICKUP_RADIUS + PLAYER_HALF) * (PICKUP_RADIUS + PLAYER_HALF);
 
@@ -258,6 +266,8 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).get(
     flushSave: () => void;
     clearSave: () => void;
     getDayNightPhase: () => number;
+    setDayNightPhase: (p: number) => void;
+    getLanternIntensities: () => Array<{ label: string; intensity: number }>;
     getNpcPosition: (id: string) => { x: number; z: number } | null;
   }
   const hook: VoxelTestHook = {
@@ -302,6 +312,12 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).get(
     flushSave,
     clearSave,
     getDayNightPhase: () => dayNight.currentPhase,
+    setDayNightPhase: (p) => {
+      dayNight.setPhase(p);
+      updateLanterns(lanterns, dayNight.currentPhase);
+    },
+    getLanternIntensities: () =>
+      lanterns.map((l) => ({ label: l.label, intensity: l.light.intensity })),
     getNpcPosition: (id) => {
       const n = interactables.find((x) => x.id === id);
       return n ? { x: n.mesh.position.x, z: n.mesh.position.z } : null;
@@ -336,6 +352,7 @@ function frame(now: number) {
   const t = (now - bootMs) / 1000;
   player.update(dt);
   dayNight.update(dt);
+  updateLanterns(lanterns, dayNight.currentPhase);
   maybeStep(player.mesh.position.x, player.mesh.position.z);
   updateAmbient(dt, dayNight.currentPhase);
   for (const w of walkers) w.update(dt, player.mesh.position);
