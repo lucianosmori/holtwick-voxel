@@ -204,6 +204,59 @@ the priority order.
   `clearSave()` so the chromium profile stays clean for re-runs. Build
   green at 497.16 kB.)
 
+- [ ] **P6.5.1** **REGRESSION FIX (highest priority — pick before P6.6).**
+  P6.5 save/load shipped a double-pickup bug: after `flushSave + reload`, an
+  item that was picked up pre-save respawns in the world AND the player
+  position is restored adjacent to it, so the auto-pickup loop fires
+  again. Result: saved inventory `{count: 1}` becomes `{count: 2}` after
+  reload. CI gate caught it (run 25983800585, commit 42be396):
+  `[validate:visual] save/load flow assert failed: post-reload inventory
+  mismatch for health_potion: expected 1, got {item_id: "health_potion",
+  count: 2}`.
+
+  **Fix design (locked, no choices):** the deterministic
+  `computeItemSpawns(seed, grid, npcCells)` in `src/world/village.ts`
+  returns an ordered `ItemSpawn[]`. Each spawn's stable identity is its
+  **index in that returned array** (since seeded gen produces the same
+  ordering every run). Extend the runtime + SaveV1 to track picked
+  indices:
+
+  1. In `src/main.ts` where the pickup loop fires (currently mutates
+     `worldItems` and removes the mesh), record the spawn's index. The
+     cleanest spot: when iterating `itemSpawns` to build `worldItems`,
+     keep `worldItems` as a parallel array with the SAME indexing as
+     `itemSpawns` (push `null` for already-picked slots after load
+     restores them). Pickup callback receives the index and writes it
+     into a `pickedItemIndices: Set<number>` in
+     `src/game/inventory.ts` (export `markPicked(index)` +
+     `getPickedIndices(): number[]` + a `subscribePicked` event).
+  2. Extend `SaveV1` in `src/game/save.ts`: add
+     `picked_item_indices: number[]` (sorted ascending for stable diff).
+     `captureSave()` reads via `getPickedIndices()`; `applySave()`
+     calls a new `restorePickedIndices(arr)` BEFORE main.ts spawns the
+     world items. If main.ts spawns before applySave runs, reorder so
+     applySave runs first.
+  3. In `main.ts` item-spawn loop: skip `itemSpawns[i]` if the picked
+     set contains `i`. The corresponding `worldItems[i]` slot stays
+     null and the pickup loop already skips null/disposed entries.
+  4. `bindAutoSave()` already subscribes to `subscribeInventory`;
+     extend it to also subscribe to `subscribePicked` so picks are
+     captured even without an inventory delta (defensive).
+
+  **Schema bump:** `SaveV1.version` stays `1` (additive field — old saves
+  without `picked_item_indices` should default to `[]`, then immediately
+  auto-resave to backfill the field).
+
+  **Done when:** the CI's existing P6.5 reload assertion passes —
+  `health_potion` count stays at 1 after `flushSave + reload`. Also
+  asserts via new sub-check: `__voxelTest__.getItemWorldPositions()`
+  after reload returns 11 entries (12 minus the 1 that was picked), not
+  12.
+
+  **Why not just delete the picked item from `itemSpawns` permanently:**
+  because `itemSpawns` is recomputed from seed on every page load — we
+  can't mutate it across sessions. Indices are the stable handle.
+
 - [ ] **P6.6** Second quest: Finn the Smith → collect 3 iron ore. Files:
   extend `src/data/quest.schema.ts` `trigger` union to add
   `{ type: "collect"; item_id: string; count: number }`, add the quest
