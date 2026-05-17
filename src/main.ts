@@ -4,6 +4,7 @@ import { buildVillage, computeItemSpawns, VILLAGE_DEPTH, VILLAGE_WIDTH, type Ite
 import { buildVoxelMesh } from "./render/voxelMesh";
 import { Player, PLAYER_HALF } from "./entities/player";
 import { BillboardNpc, NPC_Y } from "./entities/npc";
+import { NpcWalker } from "./entities/npcWalker";
 import { setupJoystick } from "./input/joystick";
 import { bindInteract, updateInteract, type InteractableNpc } from "./ui/interact";
 import { bindDialog, openDialog, closeDialog } from "./ui/dialog";
@@ -62,6 +63,7 @@ interface InteractableTavernNpc extends InteractableNpc {
   def: NpcDef;
 }
 
+const walkers: NpcWalker[] = [];
 const interactables: InteractableTavernNpc[] = NPC_SPAWNS.map((spawn) => {
   const billboard = new BillboardNpc({
     label: spawn.def.name.split(" ")[0], // short label — first word, e.g. "Edda"
@@ -74,6 +76,9 @@ const interactables: InteractableTavernNpc[] = NPC_SPAWNS.map((spawn) => {
     foreground: spawn.foreground,
   });
   scene.add(billboard.mesh);
+  if (spawn.path && spawn.path.length >= 2) {
+    walkers.push(new NpcWalker(billboard.mesh, spawn.path, gridOffset));
+  }
   return {
     id: spawn.def.id,
     name: spawn.def.name,
@@ -203,6 +208,7 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).get(
     flushSave: () => void;
     clearSave: () => void;
     getDayNightPhase: () => number;
+    getNpcPosition: (id: string) => { x: number; z: number } | null;
   }
   const hook: VoxelTestHook = {
     openDialog: (npcId?: string) => {
@@ -245,6 +251,10 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).get(
     flushSave,
     clearSave,
     getDayNightPhase: () => dayNight.currentPhase,
+    getNpcPosition: (id) => {
+      const n = interactables.find((x) => x.id === id);
+      return n ? { x: n.mesh.position.x, z: n.mesh.position.z } : null;
+    },
   };
   (window as unknown as { __voxelTest__?: VoxelTestHook }).__voxelTest__ = hook;
 }
@@ -275,6 +285,7 @@ function frame(now: number) {
   const t = (now - bootMs) / 1000;
   player.update(dt);
   dayNight.update(dt);
+  for (const w of walkers) w.update(dt, player.mesh.position);
   updateInteract(player.mesh, interactables);
   for (const it of worldItems) {
     if (it && !it.picked) it.update(t);

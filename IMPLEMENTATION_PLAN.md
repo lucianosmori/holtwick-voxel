@@ -296,27 +296,26 @@ the priority order.
   asserts quest auto-completed AND gold == before+25, opens Finn's
   dialog + captures `iter-${ITER}-collect.png`. Build green 498.38 kB.)
 
-- [ ] **P6.7** NPC pathing — 3 NPCs walk waypoints. Files:
-  `src/entities/npcWalker.ts` (new), `src/data/npcSpawns.ts` add optional
-  `path?: Array<{ cellX: number; cellZ: number; pause_sec: number }>` per
-  NPC, `src/main.ts` instantiate walkers + tick each frame.
-
-  **Walker behavior:** lerp NPC mesh between consecutive waypoints at
-  0.4 units/sec; pause at each waypoint for `pause_sec`; loop forever.
-  Halt if player within 3 cells (NPCs "notice" the player). Smooth
-  resume when player walks away.
-
-  **Three NPCs assigned paths:**
-  - **Edda** — between tavern interior `(32, 17)` and tavern doorway
-    `(32, 19)`, pause 3s each
-  - **Finn** — between forge spawn and market plaza center, pause 2s each
-  - **Bren** — between plaza center and tavern doorway, pause 4s each
-
-  Use existing NPC positions in `npcSpawns.ts` as the starting waypoint.
-
-  **Done when:** Playwright captures screenshot at t=0 and t=10s (page
-  evaluate `__voxelTest__.getNpcPosition(id)` at both times), asserts
-  the three pathing NPCs' positions differ between snapshots.
+- [x] ~~**P6.7** NPC pathing — 3 NPCs walk waypoints.~~ (iter 30 —
+  `src/entities/npcWalker.ts` `NpcWalker(mesh, waypoints, gridOffset)`
+  with `NPC_WALK_SPEED=0.4` voxels/sec, `NPC_HALT_DISTANCE=3` (halts
+  when player squared-distance < 9 units²), pause→walk state machine
+  loops the waypoint array forever. `data/npcSpawns.ts` `NpcSpawn` gains
+  optional `path?: PathWaypoint[]`; three spawns wired with 2-waypoint
+  patrols: **Edda** (31,17)↔(32,19) tavern-interior↔doorway pause 3s,
+  **Finn** (30,16)↔(36,22) tavern-corner↔Boran-forge-stand-in pause 2s,
+  **Cassia** (36,34)↔(32,22) plaza-east↔tavern-approach pause 4s. Bren
+  isn't in our cast (would arrive in P7.2 from the smith/well-keeper/
+  merchant/wanderer list which doesn't include "Bren" either) so the
+  3rd walker slot uses Cassia — same plaza↔tavern spirit. `main.ts`
+  collects `walkers: NpcWalker[]` while building interactables and
+  ticks each per RAF frame with `player.mesh.position`. `__voxelTest__`
+  extended with `getNpcPosition(id) → {x,z} | null`. `validate-visual.mjs`
+  post-collect-quest: warps player to (-26,-26) (cell ~(6,6), far from
+  every waypoint), snapshots before, waits 6.5s (> longest 4s pause +
+  meaningful walk distance), snapshots after, asserts all 3 walkers
+  moved ≥0.1 voxels; captures `iter-${ITER}-walk.png`. Build green
+  499.68 kB.)
 
 - [ ] **P6.8** Procedural ambient audio + footsteps via Web Audio API.
   Files: `src/audio/ambient.ts` (new), `src/audio/footsteps.ts` (new),

@@ -561,6 +561,57 @@ try {
     failed = true;
   }
 
+  // P6.7 NPC pathing: three NPCs (Edda, Finn, Cassia) walk between waypoints.
+  // Done-when: snapshot positions, wait, snapshot again, assert all three
+  // moved between snapshots. Move the player to a far corner first so the
+  // 3-voxel halt logic doesn't freeze any of them mid-test.
+  try {
+    const WALKERS = ["edda", "finn", "cassia"];
+    // Park the player at the SW grid corner (cell ~(6,6)) — well outside the
+    // halt radius of every waypoint in NPC_SPAWNS.
+    await page.evaluate(() =>
+      (window).__voxelTest__.movePlayerTo(-26, -26),
+    );
+    await wait(200); // one frame of grace so the halt check sees the move.
+    const before = await page.evaluate((ids) => {
+      const hook = (window).__voxelTest__;
+      return ids.map((id) => ({ id, pos: hook.getNpcPosition(id) }));
+    }, WALKERS);
+    for (const w of before) {
+      if (!w.pos) throw new Error(`getNpcPosition('${w.id}') returned null`);
+    }
+    await wait(6500); // > longest pause (4s) + meaningful walk fraction.
+    const after = await page.evaluate((ids) => {
+      const hook = (window).__voxelTest__;
+      return ids.map((id) => ({ id, pos: hook.getNpcPosition(id) }));
+    }, WALKERS);
+    for (let i = 0; i < WALKERS.length; i++) {
+      const b = before[i].pos;
+      const a = after[i].pos;
+      if (!a) throw new Error(`post-wait getNpcPosition('${WALKERS[i]}') null`);
+      const dx = a.x - b.x;
+      const dz = a.z - b.z;
+      const moved = Math.hypot(dx, dz);
+      if (moved < 0.1) {
+        throw new Error(
+          `${WALKERS[i]} did not move in 6.5s: before=(${b.x.toFixed(2)},${b.z.toFixed(2)}) ` +
+            `after=(${a.x.toFixed(2)},${a.z.toFixed(2)}) delta=${moved.toFixed(3)}`,
+        );
+      }
+    }
+    const walkShot = `artifacts/screenshots/iter-${ITER}-walk.png`;
+    await page.screenshot({ path: walkShot, fullPage: true });
+    console.log(`[validate:visual] walk screenshot -> ${walkShot}`);
+    const summary = WALKERS.map((id, i) => {
+      const b = before[i].pos, a = after[i].pos;
+      return `${id} ${Math.hypot(a.x - b.x, a.z - b.z).toFixed(2)}u`;
+    }).join(", ");
+    console.log(`[validate:visual] P6.7 walkers OK (${summary})`);
+  } catch (err) {
+    console.error("[validate:visual] walker flow assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);
