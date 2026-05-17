@@ -24,7 +24,7 @@ import type { NpcDef } from "./data/npc.schema";
 import { DayNight } from "./world/dayNight";
 import { bindTitle } from "./ui/title";
 import { isFpsOverlayVisible, mountHud, setFpsOverlayText, setFpsOverlayVisible, setTimeOfDayLabel } from "./ui/hud";
-import { acceptQuest, bindCollectAutoComplete, getGold, getQuestState, getQuests } from "./game/quests";
+import { acceptQuest, bindCollectAutoComplete, checkWalkTo, getGold, getQuestState, getQuests, getTalkedToCount, onTalkTo } from "./game/quests";
 import { ITEMS, itemById } from "./data/items";
 import { addItem, getInventory, getItemCount, isPicked, markPicked, type InventoryStack } from "./game/inventory";
 import { ITEM_BASE_Y, PICKUP_RADIUS, WorldItem } from "./entities/worldItem";
@@ -337,6 +337,8 @@ if (isTestRun) {
     getWaterInstanceYs: () => number[];
     getLampIntensities: () => Array<{ label: string; intensity: number }>;
     hasTavernSign: () => boolean;
+    getTalkedToCount: (questId: string) => number;
+    triggerOnTalkTo: (npcId: string) => void;
   }
   const hook: VoxelTestHook = {
     openDialog: (npcId?: string) => {
@@ -392,6 +394,10 @@ if (isTestRun) {
     getLampIntensities: () =>
       lampPosts.map((l) => ({ label: l.label, intensity: l.light.intensity })),
     hasTavernSign: () => tavernSign.parent === scene,
+    getTalkedToCount,
+    triggerOnTalkTo: (id) => {
+      onTalkTo(id);
+    },
     getNpcPosition: (id) => {
       const n = interactables.find((x) => x.id === id);
       return n ? { x: n.mesh.position.x, z: n.mesh.position.z } : null;
@@ -508,6 +514,8 @@ function frame(now: number) {
   smoke.update(t);
   waterAnim.update(t);
   checkPickups();
+  // P8.7 — per-frame walk_to tracker. Cheap (1-3 quests, single hypot each).
+  checkWalkTo(player.mesh.position.x, player.mesh.position.z, gridOffset);
   updateCamera();
   faceBillboards();
   updateNpcBarks({

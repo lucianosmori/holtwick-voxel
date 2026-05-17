@@ -90,6 +90,23 @@ export function addItem(id: string, count: number = 1): PickupEvent | null {
   return event;
 }
 
+// P8.7 — decrement a stack (deliver quests consume the delivered item). Returns
+// true on success, false when the player doesn't have enough. Emits a pickup
+// event with negative delta so subscribers (HUD, inventory modal, auto-save)
+// re-render and persist.
+export function consumeItem(id: string, count: number = 1): boolean {
+  const def = itemById(id);
+  if (!def || count <= 0) return false;
+  const prev = counts.get(id) ?? 0;
+  if (prev < count) return false;
+  const next = prev - count;
+  if (next === 0) counts.delete(id);
+  else counts.set(id, next);
+  const event: PickupEvent = { item_id: id, delta: -count, total: next };
+  for (const l of listeners) l(event);
+  return true;
+}
+
 export function resetInventory(): void {
   counts.clear();
 }

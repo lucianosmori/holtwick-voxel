@@ -778,16 +778,45 @@ at P9.6.
   picks the first un-picked spawn regardless of item_id. Build green
   536.98 kB (+0.63 kB vs iter 48).)
 
-- [ ] **P8.7** 3 more quests: deliver-bread (giver: Edda, deliver 1
-  bread to baker), talk-to-all (giver: Bren, trigger: talk-to all
-  12 NPCs), find-the-spring (giver: well-keeper, trigger: walk into
-  a specific hidden cell at the village edge). Files: extend
-  `src/data/quests.ts`, may require extending trigger union to add
-  `{ type: "deliver"; item_id: string; npc_id: string }` and
-  `{ type: "walk_to"; cell: {x:number; z:number}; radius: number }`.
-
-  **Done when:** Playwright accepts each new quest, satisfies its
-  trigger via test hooks, asserts completion.
+- [x] ~~**P8.7** 3 more quests: deliver-bread + walk-to-spring +
+  talk-to-all.~~ (iter 50 — `src/data/quest.schema.ts` extends
+  `QuestTrigger` with three new variants: `{type:"deliver", item_id,
+  npc_id}`, `{type:"walk_to", cell:{x,z}, radius}`, `{type:"talk_to_all",
+  npc_ids: string[]}` (plan only called out the first two; talk_to_all
+  needs its own type since the existing `talk_to` is single-target).
+  `src/data/quests.ts` appends 3 entries: `edda_deliver_bread`
+  (giver=edda, deliver 1 bread to petra, +15 gold — Edda's 2nd quest
+  surfaces only after `edda_find_aldric` completes since `renderQuestRow`
+  picks the first not_started); `hilda_find_spring` (giver=hilda,
+  walk_to cell (8,60) radius 2 — SW village edge past the pond, quiet
+  grass corner well clear of roads/plaza/water, +30 gold); and
+  `dorin_talk_to_all` (plan called for "Bren" which doesn't exist in
+  the 12-NPC cast — Dorin the plaza-wandering miner gets the social-
+  butterfly quest; trigger lists all 12 NPC IDs including the giver,
+  +50 gold). `src/game/inventory.ts` gains `consumeItem(id, count)`
+  that decrements safely + emits a negative-delta pickup event so the
+  HUD/modal/auto-save react. `src/game/quests.ts`: `talkedTo:
+  Map<questId, Set<npcId>>` accumulates the talked-to set per
+  talk_to_all quest; `acceptQuest` seeds it with the giver since the
+  player is literally talking to them at accept-time; `onTalkTo`
+  handles the deliver path (consumes 1 item + completes when target
+  NPC opens dialog) and the talk_to_all path (adds npc to set, emits,
+  completes when set covers all npc_ids); new `checkWalkTo(worldX,
+  worldZ, gridOffset)` is called per-frame from main.ts RAF loop and
+  completes any in_progress walk_to whose target circle the player has
+  entered; new `getTalkedToCount(id)` test hook. `restoreQuestsState`
+  re-seeds in_progress talk_to_all quests with the giver (the talked-to
+  set isn't persisted in SaveV1, but the giver is definitionally known
+  — post-reload the player only has to re-talk the remaining NPCs).
+  `src/main.ts` per-frame `checkWalkTo` after `checkPickups`; new test
+  hooks `getTalkedToCount` + `triggerOnTalkTo` (the latter shortcuts
+  the talk-to-all gate from "open 11 dialogs sequentially" to "call
+  onTalkTo directly" — faster CI). `scripts/validate-visual.mjs` P8.7
+  block accepts each of the 3 quests, satisfies each via its own path
+  (addItem+openDialog for deliver, movePlayerTo for walk_to,
+  triggerOnTalkTo×11 for talk_to_all), asserts gold deltas +15/+30/+50,
+  captures `iter-${ITER}-spring.png`. Build green 539.07 kB (+2.09 kB
+  vs iter 49's 536.98 kB).
 
 - [ ] **P8.8** Keybind help modal (`?` key opens). Files:
   `src/ui/keyhelp.ts` (new). Modal lists every keyboard control

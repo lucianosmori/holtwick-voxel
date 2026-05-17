@@ -1333,6 +1333,146 @@ try {
     failed = true;
   }
 
+  // P8.7 three new quests: deliver-bread (Edda→Petra), walk-to-spring (Hilda
+  // → cell 8,60), talk-to-all (Dorin → every NPC). Each accepted via the test
+  // hook + completion satisfied via the dedicated path for that trigger type.
+  try {
+    // --- deliver-bread ---
+    const goldBeforeDeliver = await page.evaluate(() =>
+      (window).__voxelTest__.getGold(),
+    );
+    const accDeliver = await page.evaluate(() =>
+      (window).__voxelTest__.acceptQuest("edda_deliver_bread"),
+    );
+    if (!accDeliver) throw new Error("acceptQuest('edda_deliver_bread') returned false");
+    // Player needs bread in inventory. Add one via the test hook.
+    await page.evaluate(() => (window).__voxelTest__.addItem("bread", 1));
+    const breadBefore = await page.evaluate(() =>
+      (window).__voxelTest__.getItemCount("bread"),
+    );
+    if (breadBefore < 1) {
+      throw new Error(`expected ≥1 bread after addItem, got ${breadBefore}`);
+    }
+    // Open dialog with Petra (the baker, npc_id "petra") to deliver.
+    await page.evaluate(() => (window).__voxelTest__.openDialog("petra"));
+    await page.waitForFunction(
+      () => document.querySelector("#dialog-backdrop")?.classList.contains("show"),
+      { timeout: 3000 },
+    );
+    const afterDeliver = await page.evaluate(() =>
+      (window).__voxelTest__.getQuestState("edda_deliver_bread"),
+    );
+    if (afterDeliver?.status !== "complete") {
+      throw new Error(
+        `edda_deliver_bread should auto-complete on Petra open, got ${JSON.stringify(afterDeliver)}`,
+      );
+    }
+    const breadAfter = await page.evaluate(() =>
+      (window).__voxelTest__.getItemCount("bread"),
+    );
+    if (breadAfter !== breadBefore - 1) {
+      throw new Error(
+        `bread should be consumed on delivery: ${breadBefore} → ${breadAfter} (expected -1)`,
+      );
+    }
+    const goldAfterDeliver = await page.evaluate(() =>
+      (window).__voxelTest__.getGold(),
+    );
+    if (goldAfterDeliver !== goldBeforeDeliver + 15) {
+      throw new Error(
+        `gold expected ${goldBeforeDeliver + 15} after deliver-bread reward, got ${goldAfterDeliver}`,
+      );
+    }
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !document.querySelector("#dialog-backdrop.show"),
+      { timeout: 3000 },
+    );
+
+    // --- find-the-spring (walk_to) ---
+    const goldBeforeSpring = await page.evaluate(() =>
+      (window).__voxelTest__.getGold(),
+    );
+    const accSpring = await page.evaluate(() =>
+      (window).__voxelTest__.acceptQuest("hilda_find_spring"),
+    );
+    if (!accSpring) throw new Error("acceptQuest('hilda_find_spring') returned false");
+    const afterAcceptSpring = await page.evaluate(() =>
+      (window).__voxelTest__.getQuestState("hilda_find_spring"),
+    );
+    if (afterAcceptSpring?.status !== "in_progress") {
+      throw new Error(
+        `hilda_find_spring should be in_progress after accept, got ${JSON.stringify(afterAcceptSpring)}`,
+      );
+    }
+    // Walk into the target cell. Village is 64×64 with gridOffset=(-32,-32),
+    // target cell is (8, 60) → world (gridOffset.x + 8.5, _, gridOffset.z + 60.5)
+    // = (-23.5, _, 28.5). The per-frame `checkWalkTo` ticks from the RAF loop.
+    await page.evaluate(() =>
+      (window).__voxelTest__.movePlayerTo(-23.5, 28.5),
+    );
+    await page.waitForFunction(
+      () => (window).__voxelTest__.getQuestState("hilda_find_spring")?.status === "complete",
+      { timeout: 3000, polling: 50 },
+    );
+    const goldAfterSpring = await page.evaluate(() =>
+      (window).__voxelTest__.getGold(),
+    );
+    if (goldAfterSpring !== goldBeforeSpring + 30) {
+      throw new Error(
+        `gold expected ${goldBeforeSpring + 30} after find-spring reward, got ${goldAfterSpring}`,
+      );
+    }
+    const springShot = `artifacts/screenshots/iter-${ITER}-spring.png`;
+    await page.screenshot({ path: springShot, fullPage: true });
+    console.log(`[validate:visual] spring screenshot -> ${springShot}`);
+
+    // --- talk-to-all (Dorin) ---
+    const goldBeforeTalkAll = await page.evaluate(() =>
+      (window).__voxelTest__.getGold(),
+    );
+    const accTalkAll = await page.evaluate(() =>
+      (window).__voxelTest__.acceptQuest("dorin_talk_to_all"),
+    );
+    if (!accTalkAll) throw new Error("acceptQuest('dorin_talk_to_all') returned false");
+    // The giver (dorin) seeds the talked-to set at accept; we still need to
+    // tick the remaining 11 NPCs. Drive `onTalkTo` directly via the test hook
+    // — opening 11 dialogs serially would also work but is much slower.
+    const remaining = [
+      "edda", "finn", "aldric", "mireille", "boran", "wren", "cassia",
+      "karsten", "hilda", "petra", "ronan",
+    ];
+    for (const id of remaining) {
+      await page.evaluate((nid) => (window).__voxelTest__.triggerOnTalkTo(nid), id);
+    }
+    const afterTalkAll = await page.evaluate(() =>
+      (window).__voxelTest__.getQuestState("dorin_talk_to_all"),
+    );
+    if (afterTalkAll?.status !== "complete") {
+      const count = await page.evaluate(() =>
+        (window).__voxelTest__.getTalkedToCount("dorin_talk_to_all"),
+      );
+      throw new Error(
+        `dorin_talk_to_all should be complete after talking to 12, got ${JSON.stringify(afterTalkAll)} (talked=${count}/12)`,
+      );
+    }
+    const goldAfterTalkAll = await page.evaluate(() =>
+      (window).__voxelTest__.getGold(),
+    );
+    if (goldAfterTalkAll !== goldBeforeTalkAll + 50) {
+      throw new Error(
+        `gold expected ${goldBeforeTalkAll + 50} after talk-to-all reward, got ${goldAfterTalkAll}`,
+      );
+    }
+    console.log(
+      `[validate:visual] P8.7 3 new quests OK ` +
+        `(deliver-bread +15, find-spring +30, talk-to-all +50)`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] P8.7 quest assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);
