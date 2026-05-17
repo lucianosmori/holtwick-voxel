@@ -36,6 +36,7 @@ import {
 import { maybeStep, resetFootstepCursor } from "./audio/footsteps";
 import { buildLanterns, updateLanterns } from "./render/lanterns";
 import { mountMinimap } from "./ui/minimap";
+import { bindSettings } from "./ui/settings";
 
 bindTitle();
 mountHud();
@@ -202,6 +203,7 @@ setupJoystick((v) => {
 
 bindDialog(() => scheduleSave());
 bindInventory();
+bindSettings({ dayNight });
 
 // P6.8 audio bootstrap. Browsers block AudioContext creation/resume until a
 // user gesture, so we listen on a few options and start on whichever fires

@@ -816,6 +816,70 @@ try {
     failed = true;
   }
 
+  // P7.4 settings modal: click gear icon, assert modal visible with 2 sliders
+  // (master volume + day-length) and 1 reset-save button. Then close with
+  // Escape so later assertions don't inherit modal state.
+  try {
+    const gearPresent = await page.evaluate(
+      () => !!document.querySelector("#settings-gear"),
+    );
+    if (!gearPresent) throw new Error("#settings-gear missing from DOM");
+    await page.evaluate(
+      () => document.querySelector("#settings-gear").click(),
+    );
+    await page.waitForFunction(
+      () => document.querySelector("#settings-backdrop")?.classList.contains("show"),
+      { timeout: 3000 },
+    );
+    const modal = await page.evaluate(() => {
+      const root = document.querySelector("#settings-backdrop");
+      const sliders = document.querySelectorAll("#settings input[type='range']");
+      const reset = document.querySelector("#settings-reset");
+      return {
+        visible: root?.classList.contains("show") ?? false,
+        sliderCount: sliders.length,
+        sliderIds: Array.from(sliders).map((s) => s.id),
+        hasReset: !!reset && reset.tagName === "BUTTON",
+        resetText: reset?.textContent?.trim() ?? "",
+      };
+    });
+    if (!modal.visible) throw new Error("settings modal not visible after gear click");
+    if (modal.sliderCount !== 2) {
+      throw new Error(`expected 2 sliders, got ${modal.sliderCount} (${modal.sliderIds.join(",")})`);
+    }
+    if (!modal.hasReset) throw new Error("reset-save button missing or not <button>");
+    const settingsShot = `artifacts/screenshots/iter-${ITER}-settings.png`;
+    await page.screenshot({ path: settingsShot, fullPage: true });
+    console.log(`[validate:visual] settings screenshot -> ${settingsShot}`);
+
+    // Day-length slider actually drives dayNight.cycleSeconds — flick it to 600
+    // then assert the underlying state. Dispatch a real 'input' event since the
+    // handler listens on input, not on value mutation.
+    await page.evaluate(() => {
+      const sl = document.querySelector("#settings-day-length");
+      sl.value = "600";
+      sl.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    const dayLenLabel = await page.evaluate(
+      () => document.querySelector("#settings-day-length-value")?.textContent ?? "",
+    );
+    if (dayLenLabel !== "600s") {
+      throw new Error(`day-length label expected "600s", got "${dayLenLabel}"`);
+    }
+
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !document.querySelector("#settings-backdrop.show"),
+      { timeout: 3000 },
+    );
+    console.log(
+      `[validate:visual] P7.4 settings OK (gear → modal with ${modal.sliderCount} sliders + reset "${modal.resetText}")`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] settings flow assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);

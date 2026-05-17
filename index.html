@@ -271,7 +271,7 @@
       /* HUD — always-visible status panel (gold + quest log) */
       #hud {
         position: fixed;
-        top: 16px;
+        top: 60px;
         right: 16px;
         width: 200px;
         padding: 10px 12px;
@@ -467,6 +467,112 @@
         z-index: 5;
       }
 
+      /* Settings gear (P7.4) — top-right 36×36 button above the HUD. */
+      #settings-gear {
+        position: fixed;
+        top: 14px;
+        right: 16px;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        background: rgba(15, 18, 26, 0.85);
+        border: 1px solid rgba(255, 200, 80, 0.45);
+        border-radius: 8px;
+        color: #ffc850;
+        font-size: 20px;
+        line-height: 1;
+        cursor: pointer;
+        z-index: 6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s ease;
+      }
+      #settings-gear:hover {
+        background: rgba(40, 48, 66, 0.95);
+      }
+
+      /* Settings modal (P7.4) — sliders + reset button. */
+      #settings-backdrop {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 120;
+        align-items: center; justify-content: center;
+        padding: 20px;
+      }
+      #settings-backdrop.show { display: flex; }
+      #settings {
+        background: #1d2230;
+        border: 2px solid #4a5775;
+        border-radius: 12px;
+        padding: 18px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        min-width: 320px;
+        max-width: 420px;
+        width: 100%;
+      }
+      #settings-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #ffc850;
+        font-weight: 700;
+        font-size: 18px;
+      }
+      .settings-row {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 13px;
+        color: #d8e4ff;
+      }
+      .settings-row-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+      }
+      .settings-row label {
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+      .settings-row-value {
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        color: #ffc850;
+        font-size: 12px;
+      }
+      .settings-row input[type="range"] {
+        width: 100%;
+        accent-color: #ffc850;
+        cursor: pointer;
+      }
+      #settings-reset {
+        margin-top: 4px;
+        padding: 10px 14px;
+        background: #6b2630;
+        color: #fff;
+        font-weight: 700;
+        border: 1px solid #a04050;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      #settings-reset:hover {
+        background: #8a323e;
+      }
+      #settings-close {
+        align-self: flex-end;
+        padding: 6px 14px;
+        background: #555;
+        border: none;
+        border-radius: 6px;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
       /* Pickup toast — ad-hoc bottom-center text for P6.3; replaced by the
          styled queue in P8.2. */
       #pickup-toast {
@@ -524,6 +630,32 @@
     </div>
 
     <canvas id="minimap" width="150" height="150"></canvas>
+
+    <button id="settings-gear" type="button" aria-label="Settings" title="Settings">⚙</button>
+
+    <div id="settings-backdrop" role="dialog" aria-modal="true" aria-label="Settings">
+      <div id="settings">
+        <div id="settings-header">
+          <span>Settings</span>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-head">
+            <label for="settings-volume">Master volume</label>
+            <span id="settings-volume-value" class="settings-row-value">50%</span>
+          </div>
+          <input id="settings-volume" type="range" min="0" max="100" value="50" />
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-head">
+            <label for="settings-day-length">Day length (seconds)</label>
+            <span id="settings-day-length-value" class="settings-row-value">120s</span>
+          </div>
+          <input id="settings-day-length" type="range" min="60" max="1800" value="120" />
+        </div>
+        <button id="settings-reset" type="button">Reset save</button>
+        <button id="settings-close" type="button">Close</button>
+      </div>
+    </div>
 
     <div id="pickup-toast"></div>
 

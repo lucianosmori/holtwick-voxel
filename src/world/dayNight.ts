@@ -9,6 +9,22 @@
 import * as THREE from "three";
 
 export const DAY_NIGHT_SECONDS = 120; // full 24h cycle in 2 minutes
+export const DAY_LENGTH_MIN = 60;
+export const DAY_LENGTH_MAX = 1800;
+export const DAY_LENGTH_KEY = "holtwick-voxel:dayLength";
+
+function loadStoredDayLength(): number | null {
+  if (typeof localStorage === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(DAY_LENGTH_KEY);
+    if (raw === null) return null;
+    const n = parseFloat(raw);
+    if (!Number.isFinite(n)) return null;
+    return Math.max(DAY_LENGTH_MIN, Math.min(DAY_LENGTH_MAX, n));
+  } catch {
+    return null;
+  }
+}
 
 const SUN_RADIUS = 50;
 const SUN_DAY_COLOR = new THREE.Color(0xffeecc);   // warm noon
@@ -24,12 +40,15 @@ export class DayNight {
   private elapsed = 0;
   private readonly tmpColor = new THREE.Color();
   private readonly phaseOverride: number | null;
+  private cycleSeconds: number;
 
   constructor(
     private readonly sun: THREE.DirectionalLight,
     private readonly hemi: THREE.HemisphereLight,
-    private readonly cycleSeconds: number = DAY_NIGHT_SECONDS,
+    cycleSeconds: number = DAY_NIGHT_SECONDS,
   ) {
+    const persisted = loadStoredDayLength();
+    this.cycleSeconds = persisted ?? cycleSeconds;
     // URL-gated time scrub for the visual gate: `?dayNight=0.25` locks at
     // mid-morning, `?dayNight=0.75` at midnight, etc.
     let override: number | null = null;
@@ -98,5 +117,25 @@ export class DayNight {
     const wrapped = ((phase % 1) + 1) % 1;
     this.elapsed = wrapped * this.cycleSeconds;
     this.apply(wrapped);
+  }
+
+  // P7.4 — runtime day-length tuning from the settings modal. Preserves the
+  // current cycle phase so the sun doesn't snap when the slider moves; persists
+  // to localStorage so the next boot honours the player's pick.
+  setCycleSeconds(seconds: number): void {
+    if (!Number.isFinite(seconds)) return;
+    const clamped = Math.max(DAY_LENGTH_MIN, Math.min(DAY_LENGTH_MAX, seconds));
+    const phase = this.cycleSeconds > 0 ? this.elapsed / this.cycleSeconds : 0;
+    this.cycleSeconds = clamped;
+    this.elapsed = phase * clamped;
+    try {
+      localStorage.setItem(DAY_LENGTH_KEY, String(clamped));
+    } catch {
+      /* localStorage may be unavailable in private mode — silent no-op */
+    }
+  }
+
+  getCycleSeconds(): number {
+    return this.cycleSeconds;
   }
 }

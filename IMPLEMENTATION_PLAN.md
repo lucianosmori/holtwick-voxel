@@ -530,22 +530,29 @@ mechanics that need design decisions overnight.
   `iter-${ITER}-minimap.png`. Build green at 515.07 kB main bundle
   (+1.64 kB vs iter 37's 513.06 kB).
 
-- [ ] **P7.4** Settings menu (gear icon top-right, modal). Files:
-  `src/ui/settings.ts` (new), gear icon in `index.html` top-right
-  corner (32×32 emoji or SVG).
-
-  **Modal contents:**
-  - Master volume slider (binds to P6.8's gain node, persists to
-    `holtwick-voxel:audio:volume`)
-  - Day-length slider 60-1800 seconds (binds to `dayNight.cycleSeconds`,
-    persists to `holtwick-voxel:dayLength`)
-  - "Reset save" button (with confirm prompt — clears
-    `holtwick-voxel:save:v1`, reloads page)
-
-  Click gear opens modal; Escape or click-outside closes.
-
-  **Done when:** Playwright clicks the gear, asserts modal visible
-  with 2 sliders + 1 button.
+- [x] ~~**P7.4** Settings menu (gear icon top-right, modal).~~ (iter 39 —
+  `src/ui/settings.ts` `bindSettings({dayNight})` wires gear-click,
+  Escape, backdrop-click. Modal has master volume slider (calls
+  `setMasterVolume` → persists `holtwick-voxel:audio:volume`, mirrors
+  HUD slider both ways), day-length slider 60–1800s (calls
+  `dayNight.setCycleSeconds` → persists `holtwick-voxel:dayLength`,
+  preserves cycle phase when changed), and "Reset save" button with
+  `window.confirm` → `clearSave()` + `window.location.reload()`.
+  `world/dayNight.ts` `cycleSeconds` now mutable + restored from
+  `DAY_LENGTH_KEY` at construction (clamped to `[DAY_LENGTH_MIN,
+  DAY_LENGTH_MAX]` = [60, 1800]) plus `setCycleSeconds` /
+  `getCycleSeconds` accessors. `index.html` adds `#settings-gear`
+  (36×36 amber-bordered button at top:14/right:16, z-index 6),
+  `#settings-backdrop` modal (z-index 120, above inventory's 110 +
+  dialog's 100) with two ranges + reset button + live value labels;
+  HUD shifted to `top: 60px` so the gear sits cleanly above it.
+  `main.ts` calls `bindSettings({ dayNight })` after `bindInventory()`.
+  `scripts/validate-visual.mjs` P7.4 block: clicks gear, asserts modal
+  visible AND `#settings input[type='range']` count === 2 AND
+  `#settings-reset` is a button, dispatches `input` on day-length
+  slider with value 600, asserts label reads "600s", captures
+  `iter-${ITER}-settings.png`, Esc closes. Build green at 517.49 kB
+  (+2.42 kB vs iter 38's 515.07 kB).
 
 - [ ] **P7.5** Animated NPC idle barks (proximity-triggered). Files:
   `src/ui/npcBark.ts` (new), called per-frame from `main.ts`.
