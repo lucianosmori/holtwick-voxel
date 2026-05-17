@@ -9,7 +9,7 @@
 **Stack (locked):**
 - Vite 5 + TypeScript 5 (mirror `02-fp-overnight-roguelike/package.json` minus Phaser).
 - Three.js `^0.160` for rendering. No `@react-three/*`, no `three-mesh-bvh`, no other 3D libs.
-- `@mlc-ai/web-llm ^0.2.83` for in-browser NPC chat (lifted verbatim from `02-fp-overnight-roguelike/src/chat/webllm.ts`).
+- NPC chat via Cloudflare Worker -> Groq `llama-3.1-8b-instant` (see `src/chat/proxy.ts` + repo `lucianosmori/holtwick-llm-proxy`). **WebLLM was removed 2026-05-16** — do NOT reintroduce `@mlc-ai/web-llm`.
 - World = voxel cubes built from `Uint8Array` grids + `THREE.InstancedMesh`. Never load external `.glb`/`.fbx` meshes.
 - NPCs = textured plane billboards (`PlaneGeometry` + `MeshBasicMaterial`, `material.map = texture`, `lookAt(camera.position)` each frame). 4-direction PixelLab pixflux PNGs swapped by yaw quadrant.
 - Camera = perspective, top-down with ~55° pitch (Diablo-ish), follows player on XZ.
@@ -18,7 +18,7 @@
 - `data/npc.schema.ts`
 - `data/npcs/*.json` (all 31)
 - `data/npcs.ts` (loader)
-- `chat/webllm.ts`
+- ~~`chat/webllm.ts`~~ (removed 2026-05-16 — chat now in `src/chat/proxy.ts`)
 - `audio/sfx.ts`
 
 **Do NOT lift:** `scenes/`, `render/`, `world/`, `entities/`, `gen/`, `items/`, `main.ts`, `ui/`. All clean rewrites for 3D.
@@ -47,6 +47,19 @@
 - Three.js learning curve compounded with voxel rendering and procedural gen → mitigated by P0 covering only scaffolding + lifts, P1 only flat-room + WASD + 1 billboard.
 - PixelLab API quota / cost → script writes to disk; re-runs only on demand, never per-iteration.
 - Identity drift between sprite generations (see [[feedback_face_fidelity_multi_clip]]) — punted; not in P0/P1.
+
+## Tonight's backlog (2026-05-16 stack-locked, plan tender-twirling-hopper)
+
+P6.1 through P6.12 in `IMPLEMENTATION_PLAN.md` is the overnight burn:
+gameplay loop (quests + inventory + save/load) then atmosphere (NPC
+pathing + procedural audio + trees + lanterns + FPS overlay + README).
+Take them in order. Earlier priorities P4.3 (DEFERRED) + P4.5/P4.6/P5.x
+are explicitly superseded — do NOT pick them up. PixelLab P3.1b-P3.3
+remain BLOCKED, skip them.
+
+Per-iter validation gate: `npm run build && npm run validate:visual &&
+npm run test:dialog` must ALL pass before commit. Push after each commit
+(repo is public, content is ungated — `feedback_always_push.md`).
 
 ## Working rules
 

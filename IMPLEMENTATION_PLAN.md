@@ -44,19 +44,304 @@ User verified iter-12 build, approved the **Holtwick-tavern fantasy** theme + **
 
 - [x] ~~**P4.0** Mobile controls + interact discovery: touch joystick (ported from holtwick-tavern), interact button (mobile) + E key (desktop), proximity hint banner.~~ (commit `0bcdc0a` 2026-05-16 — `src/input/joystick.ts` exposes `setupJoystick(listener)` with touch-only DOM in `index.html#joystick`, `Player.setJoystick(jx, jy)` overrides keyboard with 0.15 deadzone; `src/ui/interact.ts` does per-frame proximity check + hint + button enable + E key. Mobile UI gated `@media (pointer: coarse)`.)
 - [x] ~~**P4.1** Dialog modal `src/ui/dialog.ts`: on click within 3 voxels of an NPC (raycast or AABB check), open an HTML overlay with NPC name + chat input. Close on Esc. Just the UI shell first; no LLM wired yet.~~ (commit `0bcdc0a` 2026-05-16 — `src/ui/dialog.ts` exposes `bindDialog(onClose)` + `openDialog({npcName, greeting})` + `closeDialog()` + `isDialogOpen()` + Esc handler. Modal DOM lives in `index.html#dialog-backdrop` with chat-messages scroller, Send button + Enter key. Send currently echoes a stub message — full WebLLM streaming is P4.2.)
-- [x] ~~**P4.2** Wire `chat/webllm.ts` into the dialog modal: stream WebLLM tokens into the chat output. Use the NPC's persona JSON as system prompt. Tested via Playwright by clicking the canvas at the NPC's screen position and verifying the modal opens.~~ (iter 22 — `src/data/tavernCast.ts` adds `EDDA: NpcDef` (innkeeper persona, 6 idle barks, 2 combat barks) since the lifted dungeon NPC corpus is all monsters; `src/ui/dialog.ts` now takes an `NpcDef`, subscribes to `subscribeStatus` to drive the `#dialog-status` pill, on Send lazy-calls `ensureEngine()` + `streamReply(npc, text, {onToken,onDone,onError})` with token-by-token updates into the assistant bubble. `chat/webllm.ts` gained a `isWebGpuUsable()` precheck — `navigator.gpu.requestAdapter()` returns null in headless Chromium (the `'gpu' in navigator` check alone wasn't enough; Chromium exposes the API object even when no adapter exists), so when no real adapter is present we short-circuit to status `error` + a scripted-bark fallback instead of triggering the multi-MB WebLLM dynamic import. `main.ts` exposes `window.__voxelTest__.openDialog()` only when `?test=1`. `scripts/validate-visual.mjs` now opens the dialog via that hook, dispatches the Send via `evaluate` (Playwright's `click()` waits for topmost-element which intermittently fails under the full-viewport canvas), waits for a non-placeholder assistant reply, and captures `iter-${ITER}-dialog.png`. iter-22-dialog.png shows Edda greeting + user "Hello, Edda." + fallback bark "Drink up. The night is long in these hills. (scripted bark — WebLLM unavailable)" — confirming the engine-unavailable path. Build 484.40 kB main + 6,034.65 kB lazy webllm chunk; gate green (top-bin 15.96% / 323 bins, no console errors).
-- [ ] **P4.3** TTS playback per NPC: lift voice configs from `lucianosmori/holtwick-tavern@main` (specifically the `voiceConfig` per NPC + the SpeechSynthesis call). Plumb into dialog: when WebLLM emits a complete sentence, send to TTS in the NPC's voice. Mute toggle in dialog UI.
-- [ ] **P4.4** Day/night cycle: animate `DirectionalLight` orbit over 6-min cycle (3 min day, 3 min night). Adjust `HemisphereLight` colors with time. Verify via Playwright at two different fake-time points.
-- [ ] **P4.5** Quest JSON schema + first quest `src/data/quests/welcome.json`: simple "talk to Edda then to Finn" flow. State tracked in `src/state/questLog.ts`. Indicator above active quest NPC (a `!` billboard).
-- [ ] **P4.6** Inventory bar UI: single bottom-edge row of 8 slots. Pick up clickable items dropped in world (one test item: an apple in the tavern). Stored in `src/state/inventory.ts`.
+- [x] ~~**P4.2** Wire chat into the dialog modal: stream LLM tokens into the chat output. (Originally WebLLM, replaced 2026-05-16 with Cloudflare/Groq proxy — see commits `30f8e6b` for the WebLLM removal + bundle drop from 6,035 kB to 488 kB.) Use the NPC's persona JSON as system prompt. Tested via Playwright by clicking the canvas at the NPC's screen position and verifying the modal opens.~~ (iter 22 — `src/data/tavernCast.ts` adds `EDDA: NpcDef` (innkeeper persona, 6 idle barks, 2 combat barks) since the lifted dungeon NPC corpus is all monsters; `src/ui/dialog.ts` now takes an `NpcDef`, subscribes to `subscribeStatus` to drive the `#dialog-status` pill, on Send lazy-calls `ensureEngine()` + `streamReply(npc, text, {onToken,onDone,onError})` with token-by-token updates into the assistant bubble. `chat/webllm.ts` gained a `isWebGpuUsable()` precheck — `navigator.gpu.requestAdapter()` returns null in headless Chromium (the `'gpu' in navigator` check alone wasn't enough; Chromium exposes the API object even when no adapter exists), so when no real adapter is present we short-circuit to status `error` + a scripted-bark fallback instead of triggering the multi-MB WebLLM dynamic import. `main.ts` exposes `window.__voxelTest__.openDialog()` only when `?test=1`. `scripts/validate-visual.mjs` now opens the dialog via that hook, dispatches the Send via `evaluate` (Playwright's `click()` waits for topmost-element which intermittently fails under the full-viewport canvas), waits for a non-placeholder assistant reply, and captures `iter-${ITER}-dialog.png`. iter-22-dialog.png shows Edda greeting + user "Hello, Edda." + fallback bark "Drink up. The night is long in these hills. (scripted bark — WebLLM unavailable)" — confirming the engine-unavailable path. Build 484.40 kB main + 6,034.65 kB lazy webllm chunk; gate green (top-bin 15.96% / 323 bins, no console errors).
+- [ ] **P4.3** TTS playback per NPC. **DEFERRED to v2** (2026-05-16) — needs sentence-boundary detection from the Groq SSE stream + voice configs per NPC; non-trivial and not on tonight's path. Don't pick up overnight.
+- [x] ~~**P4.4** Day/night cycle: animate `DirectionalLight` orbit over 6-min cycle. Adjust `HemisphereLight` colors with time. Verify via Playwright at two different fake-time points.~~ (commit `10b8d91` 2026-05-16 — `src/world/dayNight.ts` `DayNight` class orbits sun on a 6-min cycle, blends sky+ground hemi colors by phase, `?dayNight=<0..1>` URL override for testing. Validate-visual captures noon + dusk screenshots.)
+- [x] ~~**P4.5** Quest JSON schema + first quest.~~ (superseded 2026-05-16 by **P6.1+P6.2** — full quest schema + Edda→Aldric quest + HUD log; broader scope than the original P4.5)
+- [x] ~~**P4.6** Inventory bar UI.~~ (superseded 2026-05-16 by **P6.3+P6.4** — item schema + world spawn + pickup + modal inventory triggered by `I` key)
 
 ## Priority 5 — Polish + graduation
 
-- [ ] **P5.1** Sound: ambient music loop in `assets/audio/` (CC0 from Kenney or freesound). Footstep SFX when player moves. Tavern hum when inside the building. Volume slider in dialog UI.
-- [ ] **P5.2** Title screen: `src/ui/title.ts` shows "Holtwick: The Voxel Tavern" with start button. Hides on click; reveals canvas. Style-locked to fantasy aesthetic.
-- [ ] **P5.3** Performance pass: enable frustum culling on voxel meshes, audit draw calls (target ≤50 for the full village), check FPS on the GH Pages live build (target ≥55 on mid laptop). Document numbers in NOTES.md.
-- [ ] **P5.4** README rewrite: screenshots (lifted from Playwright artifacts), "play it here" link to GH Pages URL, controls list, NPC roster, graduation marker. Flip `status.json` to `graduated` after this lands.
+- [x] ~~**P5.1** Sound: ambient music + footsteps + tavern hum + volume slider.~~ (superseded 2026-05-16 by **P6.8** — Web Audio API procedural ambient + footsteps, no asset sourcing during overnight burn)
+- [x] ~~**P5.2** Title screen: "Holtwick: The Voxel Tavern" splash with start button.~~ (commit `d43b152` 2026-05-16 — `src/ui/title.ts` renders splash with click-to-dismiss + Enter/Space key, auto-dismisses on `?test=1` for headless screenshots.)
+- [x] ~~**P5.3** Performance pass.~~ (superseded 2026-05-16 by **P6.11** — FPS overlay toggleable via backtick; full frustum-culling + draw-call audit can be a v2 follow-up)
+- [x] ~~**P5.4** README rewrite + graduation marker.~~ (superseded 2026-05-16 by **P6.12** — README rewrite + screenshot gallery after P6.1-P6.11 land; graduation flip happens after that)
+
+## Priority 6 — Overnight burn 2026-05-16: gameplay loop + living village
+
+Stack-locked by user 2026-05-16 (plan `tender-twirling-hopper`). Phase ordered
+so the playable loop ships first (P6.1-P6.6) and atmosphere layers stack on
+top (P6.7-P6.11). Each iter has a single "done when" criterion Playwright
+can assert. No "or" choices — every schema, key binding, audio source, and
+save format is locked in this plan and must NOT be re-litigated mid-burn.
+
+Validation gate per iter: `npm run build && npm run validate:visual && npm
+run test:dialog` must ALL pass before commit. Push after each commit.
+
+PixelLab credit-blocked items (P3.1b through P3.3) stay BLOCKED — do not
+attempt sprite generation during this burn even if you walk past them in
+the priority order.
+
+- [ ] **P6.1** Quest schema + first quest (Edda → Aldric → 10 gold reward).
+  Files: `src/data/quest.schema.ts` (new), `src/data/quests.ts` (new),
+  `src/game/quests.ts` (new) for state machine + event log,
+  `src/data/npcSpawns.ts` add optional `quest?: string` per NPC,
+  `src/ui/dialog.ts` inject an "[ Accept quest ]" button under the chat
+  input when the open NPC has a quest in `not_started` state. Click →
+  set state to `in_progress`, fire `onQuestAccepted` event, toast in HUD.
+  Walking to Aldric + opening dialog → auto-complete trigger fires (per
+  `quest.trigger.type === "talk_to"`), state → `complete`, 10 gold awarded,
+  toast.
+
+  **Schema:**
+  ```typescript
+  export interface QuestDef {
+    id: string;
+    giver_npc_id: string;
+    title: string;
+    description: string;
+    trigger: { type: "talk_to"; npc_id: string };
+    reward: { gold: number };
+  }
+  export type QuestStatus = "not_started" | "in_progress" | "complete";
+  export interface QuestState {
+    status: QuestStatus;
+    accepted_at?: number;
+    completed_at?: number;
+  }
+  ```
+
+  **First quest:** `id: "edda_find_aldric"`, giver `"edda"`, trigger talk
+  to `"aldric"`, reward 10 gold.
+
+  **Done when:** Playwright opens Edda dialog via `__voxelTest__.openDialog("edda")`
+  hook, clicks the accept button, then opens Aldric's dialog and asserts
+  the quest log shows 1 complete entry + gold counter shows 10.
+
+- [ ] **P6.2** Quest log HUD + gold counter. Files: `src/ui/hud.ts` (new),
+  `index.html` add `<div id="hud">` in top-right (200px wide, opacity 0.85,
+  pointer-events: none), CSS in index.html `<style>`. HUD subscribes to
+  quest + gold + inventory state and re-renders on change. Layout:
+
+  ```
+  Gold: 10
+  ----------------
+  Quests (1)
+  [done] Find Aldric
+  ```
+
+  **Done when:** HUD always visible; after P6.1's Playwright flow, HUD
+  shows the gold count + the quest's title with `[done]` prefix.
+
+- [ ] **P6.3** Item schema + 3 item types + world spawn + pickup. Files:
+  `src/data/item.schema.ts` (new), `src/data/items.ts` (new),
+  `src/game/inventory.ts` (new), `src/world/village.ts` extend to spawn
+  items via Mulberry32 (deterministic).
+
+  **Schema:**
+  ```typescript
+  export interface ItemDef {
+    id: string;
+    name: string;
+    color: number;
+    stack: number;
+    effect?: { type: "heal"; amount: number };
+  }
+  ```
+
+  **Three items:** `gold_coin` (color `0xffd84a`, stack 999),
+  `health_potion` (color `0xd64a4a`, stack 10, heal 25),
+  `iron_ore` (color `0x8a8a8a`, stack 50).
+
+  **World spawn:** 12 items scattered via seeded Mulberry32, skip
+  non-walkable cells (water, walls, plaza center, NPC positions).
+  Items are 0.3-cube billboards (`MeshBasicMaterial` colored) with
+  hover-bob animation `y = baseY + sin(t * 2) * 0.1`.
+
+  **Pickup:** in main loop, check player AABB vs each item position;
+  on overlap, push to inventory + dispose mesh + toast "+1 Iron Ore".
+  Add `__voxelTest__.movePlayerTo(x, z)` hook so Playwright can warp
+  the player onto an item without manual driving.
+
+  **Done when:** Playwright warps player onto a spawned item via the
+  test hook, asserts inventory state has the item.
+
+- [ ] **P6.4** Inventory modal triggered by `I` key. Files:
+  `src/ui/inventory.ts` (new), `index.html` add `<div id="inventory-backdrop">`,
+  CSS in `<style>`.
+
+  **Key binding:** `I` opens modal. Gate by same `isEditableTarget`
+  check as KeyE in `interact.ts` so typing "i" into chat doesn't
+  trigger it. Escape closes (extend the existing escape handler in
+  `dialog.ts` or add a new one in `inventory.ts`).
+
+  **Layout:** 4×3 grid (12 slots), each slot 56×56px with item color
+  square (32×32) + name label below + count badge top-right. Empty
+  slots show a thin dashed border.
+
+  **Done when:** Playwright presses `I`, asserts modal visible; types
+  in chat input, presses `I`, asserts modal does NOT open (gate test).
+
+- [ ] **P6.5** Save/load to localStorage. Files: `src/game/save.ts` (new),
+  `src/main.ts` wire load-on-boot + auto-save subscription.
+
+  **Format** (single localStorage key `holtwick-voxel:save:v1`):
+  ```typescript
+  interface SaveV1 {
+    version: 1;
+    player: { x: number; z: number };
+    dayNight: number;
+    quests: Record<string, QuestState>;
+    inventory: Array<{ item_id: string; count: number }>;
+    gold: number;
+    saved_at: number;
+  }
+  ```
+
+  **Auto-save triggers:** every 30 seconds via `setInterval`; on quest
+  state change; on item pickup; on dialog close. Coalesce rapid writes
+  with a 500ms debounce. **Load on boot:** if save exists and version
+  matches, apply to player position + dayNight phase + quests + inventory
+  + gold before first frame render. If version mismatches, clear the key
+  and start fresh (don't try to migrate).
+
+  **Done when:** Playwright accepts a quest, navigates the page to the
+  same URL (forced reload), asserts the quest log shows the accepted
+  quest after reload.
+
+- [ ] **P6.6** Second quest: Finn the Smith → collect 3 iron ore. Files:
+  extend `src/data/quest.schema.ts` `trigger` union to add
+  `{ type: "collect"; item_id: string; count: number }`, add the quest
+  to `src/data/quests.ts`, update `src/game/quests.ts` state machine to
+  check inventory after every pickup for `collect`-type triggers.
+
+  **Quest:** `id: "finn_iron_ore"`, giver `"finn"`, trigger collect 3
+  `iron_ore`, reward 25 gold.
+
+  **Done when:** Playwright accepts Finn's quest, programmatically pushes
+  3 iron ore to inventory via a `__voxelTest__.addItem(id, count)` hook,
+  opens Finn's dialog, asserts quest auto-completes + 25 gold added.
+
+- [ ] **P6.7** NPC pathing — 3 NPCs walk waypoints. Files:
+  `src/entities/npcWalker.ts` (new), `src/data/npcSpawns.ts` add optional
+  `path?: Array<{ cellX: number; cellZ: number; pause_sec: number }>` per
+  NPC, `src/main.ts` instantiate walkers + tick each frame.
+
+  **Walker behavior:** lerp NPC mesh between consecutive waypoints at
+  0.4 units/sec; pause at each waypoint for `pause_sec`; loop forever.
+  Halt if player within 3 cells (NPCs "notice" the player). Smooth
+  resume when player walks away.
+
+  **Three NPCs assigned paths:**
+  - **Edda** — between tavern interior `(32, 17)` and tavern doorway
+    `(32, 19)`, pause 3s each
+  - **Finn** — between forge spawn and market plaza center, pause 2s each
+  - **Bren** — between plaza center and tavern doorway, pause 4s each
+
+  Use existing NPC positions in `npcSpawns.ts` as the starting waypoint.
+
+  **Done when:** Playwright captures screenshot at t=0 and t=10s (page
+  evaluate `__voxelTest__.getNpcPosition(id)` at both times), asserts
+  the three pathing NPCs' positions differ between snapshots.
+
+- [ ] **P6.8** Procedural ambient audio + footsteps via Web Audio API.
+  Files: `src/audio/ambient.ts` (new), `src/audio/footsteps.ts` (new),
+  `src/main.ts` wire on first user gesture (audio contexts require a
+  gesture to start).
+
+  **No asset downloads.** All synthesis via Web Audio API nodes.
+
+  **Ambient day:** `AudioBufferSourceNode` filling a 2-second buffer
+  with pink noise looped, routed through `BiquadFilterNode` lowpass at
+  800Hz; layered with `OscillatorNode` sine at 110Hz (low rumble) at
+  gain 0.02; plus occasional brief sine bursts at 1200-2400Hz (bird
+  chirps) every 5-15s.
+
+  **Ambient night:** swap to a cricket pulse — `OscillatorNode` sine at
+  4000Hz amplitude-modulated by another oscillator at 8Hz; lower master
+  volume by ~30%.
+
+  **Crossfade:** when `dayNight.phase` crosses 0.7 (sunset) or 0.95
+  (dawn), 3-second crossfade between day and night ambient.
+
+  **Footsteps:** subscribe to player position; trigger every 0.3
+  player-units traveled; 50ms white noise burst through a lowpass at
+  600Hz; pitch (playbackRate) varies ±10% per step.
+
+  **Volume slider** added to `#hud`: master `GainNode` between
+  ambient/footsteps and `destination`. Slider value persists in
+  localStorage under `holtwick-voxel:audio:volume`.
+
+  **Done when:** Playwright asserts `window.__audioCtx?.state === "running"`
+  after dispatching a synthetic click (audio needs a gesture). Also assert
+  the volume slider is present in the HUD.
+
+- [ ] **P6.9** Trees + foliage. Files: `src/world/foliage.ts` (new),
+  `src/world/village.ts` invoke foliage placement after voxel grid is
+  built, `src/main.ts` add the foliage group to the scene.
+
+  **Mesh per tree:** 4 stacked dirt-textured cubes for trunk (1×4×1
+  voxel, y=0..3) + 8 green-tinted cubes around the top for canopy
+  (3×2×3 with corners removed, y=2..4). Use existing `InstancedMesh`
+  pattern from `voxelMesh.ts` — one InstancedMesh per material (trunk
+  + canopy).
+
+  **Placement:** 30 trees via Mulberry32 (seed = villageSeed + 7331).
+  Skip cells where: voxel is non-empty at ground or above; within 2
+  cells of road (dirt cells); within 8 cells of plaza (stone center);
+  within 3 cells of any NPC spawn; within 3 cells of an item spawn.
+
+  **Done when:** Playwright screenshot shows visible foliage at the
+  village edge. The pixel-content top-bin frac drops further than the
+  current 15.96% (more color variety).
+
+- [ ] **P6.10** Lantern night lighting. Files: `src/render/lanterns.ts`
+  (new), `src/main.ts` wire 4 PointLights with per-frame intensity
+  driven by `dayNight.phase`.
+
+  **Lantern positions:** tavern doorway, plaza NE corner, plaza NW
+  corner, plaza SE corner. Each: `THREE.PointLight(0xffb070, 0, 6)`
+  (warm orange, max intensity 1.5, range 6 voxels).
+
+  **Intensity ramp** (function of `dayNight.phase` where 0 = noon,
+  0.5 = sunset, 0.75 = midnight, 1 = dawn): ramp 0 → 1.5 linearly
+  across phase 0.55 → 0.75 (sunset), hold 1.5 across 0.75 → 0.95,
+  ramp 1.5 → 0 across 0.95 → 1.05 wrap (dawn). Daytime phase ≤ 0.5:
+  intensity stays 0.
+
+  **Done when:** Playwright loads `?dayNight=0.85` (full night),
+  screenshot shows warm orange light pools on the plaza voxels (assert
+  pixel-content includes a bin in the 0xffb070-adjacent range).
+
+- [ ] **P6.11** FPS counter overlay (backtick key toggle). Files:
+  `src/ui/hud.ts` extend to add `<div id="fps-overlay">` (bottom-right,
+  tiny font, monospace), `src/main.ts` add backtick keydown handler +
+  per-frame FPS sampler.
+
+  **Sampler:** rolling 60-frame window; compute fps = 60 / (sum_dt);
+  render every 10 frames to avoid jitter.
+
+  **Format:** `60fps · 32 draw · 4.2ms` where draw is `renderer.info.render.calls`
+  and ms is the frame time avg.
+
+  **Toggle:** backtick (`` ` ``) keydown toggles visibility. Default
+  hidden. Same `isEditableTarget` gate as `I` key.
+
+  **Done when:** Playwright presses backtick, asserts `#fps-overlay`
+  becomes visible AND its text contains a numeric fps reading > 0.
+
+- [ ] **P6.12** README rewrite + screenshot gallery. Files: `README.md`,
+  `artifacts/screenshots/` (4 named screenshots for the gallery).
+
+  **Update README:**
+  - Status table: tick everything P6.1 through P6.11 (assuming they all
+    landed)
+  - New `## Gameplay` section: quests, inventory, save/load mechanics
+    explained briefly
+  - New `## Screenshots` section linking 4 PNGs:
+    `artifacts/screenshots/showcase-village-day.png`,
+    `showcase-dialog.png`, `showcase-inventory.png`,
+    `showcase-night-lanterns.png` — produce these via Playwright in
+    this iter (extend `validate-visual.mjs` with a `--showcase` mode
+    or write a dedicated `scripts/capture-showcase.mjs`)
+  - Flip `status.json` to `"status": "graduated"` after this iter
+    commits — that stops the loop per the abandon/graduation signal
+
+  **Done when:** README has the gameplay section + 4 showcase images
+  exist + status.json reflects graduated. The loop will exit cleanly
+  on the next iter check.
 
 ## Done (struck through, kept for audit)
 
-P0.1-P0.4 + P1.1-P1.7 — see strike-throughs above. Iter history in NOTES.md.
+P0.1-P0.4 + P1.1-P1.7 + P2.x + P3.1 + P4.0-P4.2 + P4.4 + P5.2 — see
+strike-throughs above. Iter history in NOTES.md.

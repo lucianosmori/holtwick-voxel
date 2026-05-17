@@ -60,7 +60,7 @@ for ($i = 1; $i -le $MaxIter; $i++) {
     }
 
     Write-Host "=== iter $i/$MaxIter ==="
-    & claude -p "Run one iteration per PROMPT.md. Pick exactly one task from IMPLEMENTATION_PLAN.md - highest priority unfinished item that is NOT annotated with BLOCKED. Skip BLOCKED tasks entirely until the user clears the blocker. Complete the picked task, update files, commit on green. Green means: npm run build AND npm run validate:visual both pass - run them locally before committing and abort the iter if either fails. Push to origin after the commit so the GH Pages deploy fires."
+    & claude -p "Run one iteration per PROMPT.md. Pick exactly one task from IMPLEMENTATION_PLAN.md - highest priority unfinished item that is NOT annotated with BLOCKED or DEFERRED. Skip BLOCKED/DEFERRED tasks entirely until the user clears the blocker. Complete the picked task, update files, commit on green. Green means: npm run build AND npm run validate:visual AND npm run test:dialog all pass - run them locally before committing and abort the iter if any fails. Push to origin after the commit so the GH Pages deploy fires."
     if ($LASTEXITCODE -ne 0) {
         Send-Ping "iter $i FAILED - see terminal"
         exit 1
@@ -79,6 +79,11 @@ for ($i = 1; $i -le $MaxIter; $i++) {
     & npm run validate:visual
     if ($LASTEXITCODE -ne 0) {
         Send-Ping "iter $i validate:visual FAILED after commit - halting"
+        exit 1
+    }
+    & npm run test:dialog
+    if ($LASTEXITCODE -ne 0) {
+        Send-Ping "iter $i test:dialog FAILED after commit - halting"
         exit 1
     }
 }
