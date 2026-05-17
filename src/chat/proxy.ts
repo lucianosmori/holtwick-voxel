@@ -1,25 +1,53 @@
-// Cloudflare Worker / Groq Llama-3.1-8B fallback when WebGPU is unavailable
-// (Firefox, Safari, most mobile browsers). The proxy lives at:
-//   https://holtwick-llm.lucianosmori.workers.dev/chat
-// Source + deploy notes: https://github.com/lucianosmori/holtwick-llm-proxy
+// Cloudflare Worker / Groq Llama-3.1-8B is the sole NPC chat backend.
+// Endpoint:    https://holtwick-llm.lucianosmori.workers.dev/chat
+// Source:      https://github.com/lucianosmori/holtwick-llm-proxy
+// Wire format: Server-Sent Events in Groq's OpenAI-compatible delta shape
+//              (`data: {choices:[{delta:{content:"..."}}]}`).
 //
-// Same Server-Sent-Events format Groq emits (OpenAI-compatible deltas) —
-// we just parse `data: {choices:[{delta:{content:"..."}}]}` chunks and
-// invoke the same `StreamCallbacks` shape webllm.ts uses.
+// This module owns chat-history state (a per-NPC ring buffer capped at
+// HISTORY_TURN_CAP turns) and the StreamCallbacks contract the dialog uses
+// to render tokens. Both lived in webllm.ts before the in-browser model was
+// dropped; nothing else consumes them, so they live here directly.
 
 import type { NpcDef } from "../data/npc.schema";
-import {
-  getHistory,
-  pushTurn,
-  type ChatTurn,
-  type StreamCallbacks,
-} from "./webllm";
 
 const PROXY_URL = "https://holtwick-llm.lucianosmori.workers.dev/chat";
-const HISTORY_TURN_CAP = 12;
+const HEALTH_URL = "https://holtwick-llm.lucianosmori.workers.dev/health";
+const WARM_URL = "https://holtwick-llm.lucianosmori.workers.dev/warm";
+
 // Cap the round-trip so a hung worker / Groq timeout doesn't strand the
-// dialog spinner on "…" — the bubble falls through to the scripted bark.
+// dialog spinner on "…" — the bubble falls through to the offline bark.
 const PROXY_REQUEST_TIMEOUT_MS = 8000;
+const HISTORY_TURN_CAP = 12;
+
+export type ChatRole = "user" | "assistant";
+export interface ChatTurn {
+  role: ChatRole;
+  content: string;
+}
+
+export interface StreamCallbacks {
+  onToken: (acc: string) => void;
+  onDone: (final: string) => void;
+  onError: (message: string) => void;
+}
+
+const histories = new Map<string, ChatTurn[]>();
+
+export function getHistory(npcId: string): ChatTurn[] {
+  return histories.get(npcId) ?? [];
+}
+
+export function resetHistory(npcId: string): void {
+  histories.delete(npcId);
+}
+
+export function pushTurn(npcId: string, turn: ChatTurn): void {
+  const list = histories.get(npcId) ?? [];
+  list.push(turn);
+  if (list.length > HISTORY_TURN_CAP) list.splice(0, list.length - HISTORY_TURN_CAP);
+  histories.set(npcId, list);
+}
 
 interface ProxyChunk {
   choices?: { delta?: { content?: string } }[];
@@ -27,7 +55,7 @@ interface ProxyChunk {
 
 export async function isProxyReachable(): Promise<boolean> {
   try {
-    const res = await fetch("https://holtwick-llm.lucianosmori.workers.dev/health", {
+    const res = await fetch(HEALTH_URL, {
       method: "GET",
       signal: AbortSignal.timeout(3000),
     });
@@ -37,10 +65,12 @@ export async function isProxyReachable(): Promise<boolean> {
   }
 }
 
-// Fire-and-forget warmup. Cloudflare Workers cold-start adds ~50-100ms on the
-// first request after idle; pinging /health when the player opens the dialog
-// (or even when the page loads) means the actual /chat POST hits a warm
-// isolate. Throttled so rapid opens don't spam the worker.
+// Fire-and-forget warmup. Cloudflare Workers cold-start adds ~50-100ms on
+// the first request after idle; pinging /health when the player opens the
+// dialog (or even when the page loads) means the actual /chat POST hits a
+// warm isolate. /warm goes one further and round-trips a 1-token Groq
+// request so the worker->Groq TLS pipe + model selection is hot too.
+// Throttled so rapid opens don't spam the worker.
 let lastWarmupAt = 0;
 const WARMUP_MIN_INTERVAL_MS = 30_000;
 
@@ -48,17 +78,8 @@ export function warmupProxy(): void {
   const now = Date.now();
   if (now - lastWarmupAt < WARMUP_MIN_INTERVAL_MS) return;
   lastWarmupAt = now;
-  // /health warms the worker isolate. /warm fires a 1-token Groq round-trip
-  // so the worker->Groq TLS pipe + model selection is hot when the player
-  // sends their first real message. Fire-and-forget both in parallel.
-  void fetch("https://holtwick-llm.lucianosmori.workers.dev/health", {
-    method: "GET",
-    signal: AbortSignal.timeout(2000),
-  }).catch(() => {});
-  void fetch("https://holtwick-llm.lucianosmori.workers.dev/warm", {
-    method: "GET",
-    signal: AbortSignal.timeout(5000),
-  }).catch(() => {});
+  void fetch(HEALTH_URL, { method: "GET", signal: AbortSignal.timeout(2000) }).catch(() => {});
+  void fetch(WARM_URL, { method: "GET", signal: AbortSignal.timeout(5000) }).catch(() => {});
 }
 
 export async function streamProxyReply(

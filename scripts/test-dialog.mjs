@@ -101,7 +101,7 @@ try {
     `got "${typedTrap}"`,
   );
 
-  console.log("[test:dialog] === send + reply (proxy or scripted bark) ===");
+  console.log("[test:dialog] === send + reply (Groq proxy, scripted bark on failure) ===");
   // Clear and send a clean message via the send button so the streaming path
   // gets exercised. Direct DOM .click() sidesteps Playwright's topmost-element
   // check (full-viewport canvas confuses it).
@@ -143,11 +143,7 @@ try {
   check("Escape closes dialog", true);
 
   console.log("[test:dialog] === no console errors ===");
-  // WebGPU-unavailable warning is expected in headless Chromium; filter it.
-  const realErrors = consoleErrors.filter(
-    (e) => !/WebGPU/i.test(e) && !/MLC/i.test(e) && !/scripted bark/i.test(e),
-  );
-  check("no unexpected console errors", realErrors.length === 0, realErrors.join(" | "));
+  check("no console errors", consoleErrors.length === 0, consoleErrors.join(" | "));
 } catch (err) {
   console.error("[test:dialog] uncaught:", err?.stack || err);
   failures.push("uncaught");

@@ -132,9 +132,8 @@ try {
 
   // Dialog wiring assert (P4.2): open the modal via the `?test=1` hook, send
   // a message, and wait for a 3rd `.chat-msg` (greeting + user + assistant
-  // reply). Headless Chromium has no WebGPU, so `ensureEngine()` short-circuits
-  // and the reply comes from the scripted-bark fallback path — that exercises
-  // the wiring without depending on a 1GB model download.
+  // reply). Headless Chromium pulls the reply from the Cloudflare/Groq proxy
+  // (or the scripted-bark offline fallback if the proxy is unreachable).
   try {
     const hookReady = await page.evaluate(() => !!(window).__voxelTest__);
     if (!hookReady) throw new Error("window.__voxelTest__ missing — main.ts `?test=1` gate?");

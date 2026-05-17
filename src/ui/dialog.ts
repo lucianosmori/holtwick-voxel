@@ -1,19 +1,10 @@
 // NPC dialog modal. On open, shows the NPC's name + a random idle bark as
-// the greeting. On Send, lazy-loads WebLLM (Qwen2.5-1.5B-Instruct, ~1GB)
-// and streams the assistant reply token-by-token into the chat bubble.
-// When WebGPU is unavailable (headless validator, Firefox, locked-down
-// browsers) `ensureEngine()` returns null fast and we fall back to a
-// random scripted bark so the dialog still produces a reply.
+// the greeting. On Send, streams a reply from the Cloudflare/Groq proxy
+// (Llama-3.1-8B-Instant) into the chat bubble. If the proxy is unreachable
+// or returns nothing, falls back to a random scripted bark so the dialog
+// still produces a reply.
 
 import type { NpcDef } from "../data/npc.schema";
-import {
-  ensureEngine,
-  getStatus,
-  isReady,
-  lastInitError,
-  streamReply,
-  subscribeStatus,
-} from "../chat/webllm";
 import { streamProxyReply, warmupProxy } from "../chat/proxy";
 
 let bound = false;
@@ -27,20 +18,13 @@ function $(id: string): HTMLElement {
   return el;
 }
 
-function setStatusText(text: string): void {
-  const el = document.getElementById("dialog-status");
-  if (el) el.textContent = text || "idle";
-}
-
 export function bindDialog(onClose: () => void): void {
   if (bound) return;
   bound = true;
   onCloseCb = onClose;
 
-  subscribeStatus((s) => setStatusText(s.text));
-
   // Warm the proxy on bind so the first NPC the player approaches gets a
-  // hot worker isolate even before they open the dialog.
+  // hot worker isolate + Groq pipe even before they open the dialog.
   warmupProxy();
 
   $("dialog-close").addEventListener("click", () => closeDialog());
@@ -71,10 +55,8 @@ export function openDialog(npc: NpcDef): void {
   messages.innerHTML = "";
   const greeting = pickRandom(npc.barks_idle) ?? `I am ${npc.name}.`;
   appendMessage("assistant", greeting);
-  setStatusText(getStatus().text);
   $("dialog-backdrop").classList.add("show");
   ($("chat-input") as HTMLInputElement).focus();
-  // Warm the Cloudflare Worker so the first /chat POST hits a hot isolate.
   warmupProxy();
 }
 
@@ -101,35 +83,9 @@ async function handleSend(): Promise<void> {
   streaming = true;
   const bubble = appendMessage("assistant", "…");
 
-  // Fallback chain: WebLLM (in-browser, fast once cached) -> Cloudflare/Groq
-  // proxy (cross-browser, no model download) -> scripted bark (last resort).
-  const callbacks = {
-    onToken: (acc: string) => {
-      bubble.textContent = acc;
-      scrollToBottom();
-    },
-    onDone: (final: string) => {
-      bubble.textContent = final;
-      scrollToBottom();
-    },
-    onError: (msg: string) => {
-      // Don't paint the error directly — caller decides next fallback.
-      console.warn("[dialog] backend error:", msg);
-    },
-  };
-
+  let proxyFailed = false;
+  let proxyAcc = "";
   try {
-    const engine = await ensureEngine();
-    if (engine && isReady()) {
-      bubble.textContent = "";
-      await streamReply(npc, text, callbacks);
-      return;
-    }
-
-    // WebLLM not available (WebGPU missing OR init failed). Try the proxy.
-    bubble.textContent = "…";
-    let proxyFailed = false;
-    let proxyAcc = "";
     await streamProxyReply(npc, text, {
       onToken: (acc) => {
         proxyAcc = acc;
@@ -148,12 +104,8 @@ async function handleSend(): Promise<void> {
     });
 
     if (proxyFailed || proxyAcc.length === 0) {
-      // Both LLM paths down — scripted bark with explanatory suffix.
       const fb = pickRandom(npc.barks_idle) ?? "...";
-      const reason = lastInitError()
-        ? " (scripted bark — WebLLM + proxy both unavailable)"
-        : " (scripted bark — proxy unreachable)";
-      bubble.textContent = `${fb}${reason}`;
+      bubble.textContent = `${fb} (offline)`;
       scrollToBottom();
     }
   } finally {

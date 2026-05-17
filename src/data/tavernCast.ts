@@ -2,7 +2,7 @@
 // lifted verbatim from `02-fp-overnight-roguelike` (those are mobs; the
 // Holtwick tavern needs friendly NPCs the player can chat with).
 //
-// These follow the same `NpcDef` schema so `chat/webllm.ts` can build a
+// These follow the same `NpcDef` schema so the proxy worker can build a
 // system prompt without special-casing.
 
 import type { NpcDef } from "./npc.schema";

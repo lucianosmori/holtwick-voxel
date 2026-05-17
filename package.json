@@ -2,7 +2,7 @@
   "name": "holtwick-voxel",
   "private": true,
   "version": "0.0.1",
-  "description": "Voxel rogue-like 3D version of Holtwick Tavern — Three.js + WebLLM NPCs + procedural village",
+  "description": "Voxel rogue-like 3D version of Holtwick Tavern — Three.js + cloud LLM NPCs (Cloudflare/Groq) + procedural village",
   "homepage": "https://lucianosmori.github.io/holtwick-voxel/",
   "repository": {
     "type": "git",
@@ -21,7 +21,6 @@
     "gen:sprites": "node tools/genSprites.mjs"
   },
   "dependencies": {
-    "@mlc-ai/web-llm": "^0.2.83",
     "three": "^0.160.0"
   },
   "devDependencies": {

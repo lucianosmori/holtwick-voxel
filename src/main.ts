@@ -59,9 +59,7 @@ setupJoystick((v) => {
   player.setJoystick(v.active ? v.x : null, v.active ? v.y : undefined);
 });
 
-bindDialog(() => {
-  // Dialog closed — nothing to clean up yet, hook reserved for WebLLM teardown.
-});
+bindDialog(() => {});
 
 bindInteract((npc) => {
   const tavernNpc = interactables.find((n) => n.id === npc.id);
