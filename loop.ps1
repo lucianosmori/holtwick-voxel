@@ -19,10 +19,24 @@ $ErrorActionPreference = 'Continue'
 $Experiment = Split-Path -Leaf (Get-Location)
 $Deadline = (Get-Date).AddMinutes($TimeboxMin)
 
-# Force Max OAuth: clear any stale ANTHROPIC_API_KEY so claude.exe uses the
-# OAuth session instead of an invalid key. Mirrored from ralph-orchestrator.ps1.
-$env:ANTHROPIC_API_KEY = $null
-Remove-Item Env:ANTHROPIC_API_KEY -ErrorAction SilentlyContinue
+# Billing mode:
+#   Default (RALPH_USE_API_CREDITS unset): force Max OAuth by clearing any
+#     stale ANTHROPIC_API_KEY so claude.exe uses the OAuth session.
+#   Override (RALPH_USE_API_CREDITS=1): leave ANTHROPIC_API_KEY alone — the
+#     caller has explicitly opted into Anthropic Console credits via
+#     ~\.claude\channels\anthropic\use-credits.ps1.
+if (-not $env:RALPH_USE_API_CREDITS) {
+    $env:ANTHROPIC_API_KEY = $null
+    Remove-Item Env:ANTHROPIC_API_KEY -ErrorAction SilentlyContinue
+    Write-Host "[loop] billing: Max OAuth (default)"
+} else {
+    if (-not $env:ANTHROPIC_API_KEY) {
+        Write-Host "[loop] WARNING: RALPH_USE_API_CREDITS=1 but ANTHROPIC_API_KEY is empty. Falling back to Max OAuth."
+        Remove-Item Env:RALPH_USE_API_CREDITS -ErrorAction SilentlyContinue
+    } else {
+        Write-Host "[loop] billing: Anthropic Console credits (key set, sentinel honored)"
+    }
+}
 
 # Load telegram creds from .env if present
 $envFile = Join-Path $env:USERPROFILE '.claude\channels\telegram\.env'
