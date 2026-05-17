@@ -62,30 +62,49 @@ for ($i = 1; $i -le $MaxIter; $i++) {
     }
 
     Write-Host "=== iter $i/$MaxIter ==="
-    & claude -p "Run one iteration per PROMPT.md. Pick exactly one task from IMPLEMENTATION_PLAN.md - highest priority unfinished item that is NOT annotated with BLOCKED or DEFERRED. Skip BLOCKED/DEFERRED tasks entirely until the user clears the blocker. Complete the picked task, update files, commit on green. Green means: npm run build AND npm run validate:visual AND npm run test:dialog all pass - run them locally before committing and abort the iter if any fails. Push to origin after the commit so the GH Pages deploy fires."
+    & claude -p "Run one iteration per PROMPT.md. Pick exactly one task from IMPLEMENTATION_PLAN.md - highest priority unfinished item that is NOT annotated with BLOCKED or DEFERRED. Skip BLOCKED/DEFERRED tasks entirely until the user clears the blocker. Complete the picked task, update files, commit on green. Green LOCAL means: npm run build passes (tsc --noEmit + vite build) - run it before committing and abort the iter if it fails. Do NOT run npm run validate:visual or npm run test:dialog locally - those have moved to GitHub Actions (.github/workflows/visual-validation.yml) and run automatically on every push to spare the user's machine from Playwright. Push to origin after the commit so the visual-validation workflow + GH Pages deploy both fire."
     if ($LASTEXITCODE -ne 0) {
         Send-Ping "iter $i FAILED - see terminal"
         exit 1
     }
 
-    # Post-iter validation gate (P2.0). Belt-and-suspenders: the agent should
-    # also run these before committing, but the loop re-runs them so an iter
-    # that regressed visuals halts the burn instead of compounding breakage.
-    Write-Host "=== iter $i validation gate ==="
+    # Post-iter local gate: typecheck + build only. Playwright (validate:visual
+    # + test:dialog) moved to .github/workflows/visual-validation.yml as of
+    # 2026-05-17 per feedback-fire-immediately-in-quiet-hours: Playwright on the
+    # user's machine choked them during active hours. After build passes, we
+    # poll `gh run watch` for THIS commit's CI run so regressions still halt the
+    # burn — they just halt it ~2-3 min later instead of locally.
+    Write-Host "=== iter $i local gate (build) ==="
     $env:ITER = $i
     & npm run build
     if ($LASTEXITCODE -ne 0) {
         Send-Ping "iter $i build FAILED after commit - halting"
         exit 1
     }
-    & npm run validate:visual
-    if ($LASTEXITCODE -ne 0) {
-        Send-Ping "iter $i validate:visual FAILED after commit - halting"
+
+    Write-Host "=== iter $i waiting for GH Actions visual-validation ==="
+    Start-Sleep -Seconds 8  # let GH register the workflow_run for the push
+    $sha = (git rev-parse HEAD).Trim()
+    $runId = $null
+    for ($attempt = 1; $attempt -le 12; $attempt++) {
+        $json = & gh run list --branch main --commit $sha --workflow visual-validation.yml --limit 1 --json databaseId 2>$null
+        if ($LASTEXITCODE -eq 0 -and $json) {
+            $obj = $json | ConvertFrom-Json
+            if ($obj -and $obj.Count -gt 0) {
+                $runId = $obj[0].databaseId
+                break
+            }
+        }
+        Start-Sleep -Seconds 5
+    }
+    if (-not $runId) {
+        Send-Ping "iter ${i}: GH Actions run for $sha not found after 60s - halting"
         exit 1
     }
-    & npm run test:dialog
+    Write-Host "watching GH run $runId for commit $sha"
+    & gh run watch $runId --exit-status
     if ($LASTEXITCODE -ne 0) {
-        Send-Ping "iter $i test:dialog FAILED after commit - halting"
+        Send-Ping "iter ${i}: GH visual-validation FAILED for $sha (run $runId) - halting"
         exit 1
     }
 }

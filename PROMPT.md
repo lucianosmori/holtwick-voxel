@@ -57,9 +57,17 @@ Take them in order. Earlier priorities P4.3 (DEFERRED) + P4.5/P4.6/P5.x
 are explicitly superseded — do NOT pick them up. PixelLab P3.1b-P3.3
 remain BLOCKED, skip them.
 
-Per-iter validation gate: `npm run build && npm run validate:visual &&
-npm run test:dialog` must ALL pass before commit. Push after each commit
-(repo is public, content is ungated — `feedback_always_push.md`).
+Per-iter validation gate (LOCAL): `npm run build` must pass before commit
+(tsc --noEmit + vite build). Do NOT run `npm run validate:visual` or
+`npm run test:dialog` locally — those moved to GitHub Actions
+(`.github/workflows/visual-validation.yml`) on 2026-05-17 to spare the
+user's machine from Playwright. They run automatically on every push.
+The loop.ps1 wrapping you waits for that CI check via `gh run watch`
+and halts the burn if the check fails, so visual regressions still gate
+forward progress — they just gate it from the cloud.
+
+Push after each commit (repo is public, content is ungated —
+`feedback_always_push.md`).
 
 ## Working rules
 

@@ -1,0 +1,64 @@
+name: visual-validation
+
+# Visual regression gate that USED to run locally on the developer's machine
+# (per .claude/agents validate-visual.mjs + scripts/test-dialog.mjs) — moved
+# to CI 2026-05-17 because Playwright + headless Chromium were tanking the
+# user's machine during overnight ralph burns when the user was at the
+# keyboard. Public repo = unlimited Actions minutes, so this is free.
+#
+# loop.ps1 in this repo polls `gh run watch --exit-status` for THIS commit's
+# run after each iter's push and halts the burn on red, so regressions can't
+# stack across iters.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Cancel older runs for the same branch if a newer push arrives — ralph
+  # iters land back-to-back, no point validating a stale commit.
+  group: visual-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      - name: Build (tsc --noEmit + vite build)
+        run: npm run build
+
+      - name: Validate visual (canvas + dialog + pixel-content)
+        run: npm run validate:visual
+        env:
+          ITER: ci-${{ github.run_number }}
+
+      - name: Test dialog regression suite
+        run: npm run test:dialog
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ github.run_number }}
+          path: artifacts/screenshots/
+          retention-days: 14
+          if-no-files-found: warn
