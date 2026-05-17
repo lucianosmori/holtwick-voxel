@@ -1039,23 +1039,29 @@ no longer flips graduation). Final task **P9.6** flips status to
   block that flips phase to 0.25/0.85, asserts the alpha matches,
   and captures `iter-${ITER}-stars.png`. Build green 547.36 kB.)
 
-- [ ] **P9.6** GRADUATION FLIP + final README pass. Files:
-  `status.json`, `README.md`.
-
-  **Update README:**
-  - Add P9 items to the status table (tavern interior, AO, hills,
-    indoor lighting, stars)
-  - Bump description if any new mechanics changed (hills means
-    "walkable elevation" is now a feature)
-  - Final screenshot regeneration via
-    `node scripts/capture-showcase.mjs`
-
-  **Flip `status.json` to `"status": "graduated"`** — halts the
-  loop per the abandon/graduation signal.
-
-  **Done when:** status.json reflects graduated AND README is
-  current. On the next iter check, loop exits cleanly. This is
-  the final task for the overnight burn.
+- [x] ~~**P9.6** GRADUATION FLIP + final README pass.~~ (iter 57 —
+  README status table extended with new rows for P9 (tavern interior,
+  indoor candles, multi-Y hills + step-up collision, baked voxel AO,
+  night starfield) plus the P7/P8 surface area the previous README
+  understated (7 quests not 4, 7 items not 3, tavern sign + lamp posts,
+  decorative props, animated water + smoke, toast queue, time-of-day
+  label, keybind help modal). Gameplay section bumped to the full
+  7-quest list with reward details, items list now 7-deep, dressed
+  tavern interior + 3 walkable hills mentioned, lighting paragraph
+  expanded to call out lamp posts + hearth + candles + starfield.
+  Recap-by-the-numbers rebuilt (7/7/4/12/30+20/3/11 lights/2-min/
+  64×4×64). Stack section corrected: renderer is now non-indexed
+  per-type geometry with baked AO vertex colours, not `InstancedMesh`
+  per type (water carved out for the WaterAnimator path); world grid
+  height is 4 (P7.1's BUILDINGS_MAX_Y=3 + ground), not 3; lighting
+  bullet lists the 11-PointLight split. Showcase regen via
+  `scripts/capture-showcase.mjs` intentionally skipped per the
+  2026-05-17 keep-Playwright-off-the-dev-machine rule — the iter-35
+  showcase shots still represent the village/dialog/inventory/night
+  hero scenes accurately; P9 polish is incremental, not load-bearing.
+  `status.json` flipped `status → "graduated"` so the loop watcher's
+  graduation grep halts the burn on next check. Build green
+  547.36 kB.)
 
 ## Done (struck through, kept for audit)
 
