@@ -420,22 +420,25 @@ the priority order.
   resets phase to noon so any later assertions inherit clean day state.
   Build green 507.66 kB (+2.15 kB vs iter 32's 505.51 kB).)
 
-- [ ] **P6.11** FPS counter overlay (backtick key toggle). Files:
-  `src/ui/hud.ts` extend to add `<div id="fps-overlay">` (bottom-right,
-  tiny font, monospace), `src/main.ts` add backtick keydown handler +
-  per-frame FPS sampler.
-
-  **Sampler:** rolling 60-frame window; compute fps = 60 / (sum_dt);
-  render every 10 frames to avoid jitter.
-
-  **Format:** `60fps · 32 draw · 4.2ms` where draw is `renderer.info.render.calls`
-  and ms is the frame time avg.
-
-  **Toggle:** backtick (`` ` ``) keydown toggles visibility. Default
-  hidden. Same `isEditableTarget` gate as `I` key.
-
-  **Done when:** Playwright presses backtick, asserts `#fps-overlay`
-  becomes visible AND its text contains a numeric fps reading > 0.
+- [x] ~~**P6.11** FPS counter overlay (backtick key toggle).~~ (iter 34 —
+  `index.html` adds `#fps-overlay` (bottom-right, monospace, hidden by
+  default; `.show` flips display:block; `pointer-events:none` so it stays
+  out of the way of clicks); `src/ui/hud.ts` exports
+  `setFpsOverlayText/setFpsOverlayVisible/isFpsOverlayVisible`. `src/main.ts`
+  runs a rolling 60-frame `Float32Array` of `dt` values, advances
+  `fpsRenderCounter` per frame, and every 10 frames (when visible) writes
+  `${fps}fps · ${draw} draw · ${ms}ms` where `fps = round(1/avgDt)`,
+  `draw = renderer.info.render.calls` (snapshotted after `renderer.render`
+  so it reflects the just-rendered frame), `ms = (avgDt*1000).toFixed(1)`.
+  Backtick (`e.code === "Backquote"`) keydown toggles visibility, gated by
+  a local `isEditableTarget` helper (same pattern as inventory's `I` key)
+  + `e.repeat` guard so holding the key doesn't strobe. Sampler ticks
+  every frame so the rolling window stays warm even while hidden — the
+  first write after toggling on is immediate. `scripts/validate-visual.mjs`
+  P6.11 block: asserts overlay is hidden at boot, presses Backquote, waits
+  ≤2s for `#fps-overlay.show` AND the text to match `^(\d+)fps` with the
+  number > 0, then presses Backquote again to confirm the toggle-off path.
+  Build green 508.43 kB (+0.77 kB vs iter 33's 507.66 kB).
 
 - [ ] **P6.12** README v1 + showcase screenshots. Files: `README.md`,
   `scripts/capture-showcase.mjs` (new), `artifacts/screenshots/`.

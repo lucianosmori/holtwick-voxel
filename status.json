@@ -1,10 +1,10 @@
 {
     "updated_at":  "2026-05-17",
-    "iteration":  33,
+    "iteration":  34,
     "started_at":  "2026-05-12T00:00:00Z",
     "experiment":  "holtwick-voxel",
     "consecutive_no_progress":  0,
     "last_error":  null,
     "status":  "exploring",
-    "last_outcome":  "P6.10 done — lantern night lighting. `src/render/lanterns.ts` `buildLanterns(gridOffset)` returns 4 warm-orange (0xffb070) `THREE.PointLight`s, range 6, max intensity 1.5, mounted at world y=3 over cells: tavern-doorway (one south of `TAVERN_DOORWAY_X`), plaza NE/NW/SE corners (derived from PLAZA_HALF=10 around village centre 32,32). `lanternIntensityForPhase(p)` reuses the sun's elevation curve (`cos(p*2π)`) shifted +0.3 so lanterns ignite at ~70% sun-fall (dusk pool reads before full dark), peaks at midnight, symmetric falloff through dawn — matched to dayNight's real convention (0=noon, 0.25=dusk, 0.5=midnight, 0.75=dawn). `main.ts` adds the 4 lights to the scene, calls `updateLanterns` once pre-RAF + every frame after `dayNight.update(dt)`. `__voxelTest__` extended with `setDayNightPhase(p)` + `getLanternIntensities()`. `validate-visual.mjs` P6.10 block drives noon → all dark, drives midnight → all ≥1.0, captures `iter-${ITER}-lanterns.png`, resets to noon. Build green 507.66 kB (+2.15 kB vs iter 32). Next: P6.11 FPS counter overlay (backtick toggle)."
+    "last_outcome":  "P6.11 done — FPS overlay (backtick toggle). `index.html` adds `#fps-overlay` (bottom-right, monospace, hidden by default, `.show` flips display, `pointer-events:none`). `src/ui/hud.ts` exports `setFpsOverlayText/setFpsOverlayVisible/isFpsOverlayVisible`. `src/main.ts` runs a rolling 60-frame `Float32Array` of `dt` values + a `fpsRenderCounter`; every 10 frames (when visible) writes `${fps}fps · ${draw} draw · ${ms}ms` with `fps = round(1/avgDt)`, `draw = renderer.info.render.calls` (snapshotted post-render), `ms = (avgDt*1000).toFixed(1)`. Backtick keydown (`e.code === \"Backquote\"`) toggles visibility, gated by local `isEditableTarget` + `e.repeat` guard so holding doesn't strobe. Sampler runs every frame even while hidden so window stays warm. `scripts/validate-visual.mjs` P6.11 block asserts hidden at boot, presses Backquote, waits ≤2s for `#fps-overlay.show` AND text matching `^(\\d+)fps` with N>0, presses Backquote again to confirm toggle-off. Build green 508.43 kB (+0.77 kB vs iter 33). Next: P6.12 README v1 + showcase screenshot capture script."
 }

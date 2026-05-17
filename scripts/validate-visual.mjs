@@ -701,6 +701,46 @@ try {
     failed = true;
   }
 
+  // P6.11 FPS overlay: hidden by default, backtick toggles it on; once visible
+  // the sampler renders within FPS_RENDER_EVERY (10) frames and the text must
+  // contain a numeric fps reading > 0.
+  try {
+    const hiddenInitially = await page.evaluate(
+      () => !document.querySelector("#fps-overlay.show"),
+    );
+    if (!hiddenInitially) {
+      throw new Error("#fps-overlay was already visible before backtick press");
+    }
+    await page.keyboard.press("Backquote");
+    await page.waitForFunction(
+      () => !!document.querySelector("#fps-overlay.show"),
+      { timeout: 2000, polling: 50 },
+    );
+    // Wait up to 1s for the sampler to write its first text payload (every 10
+    // frames @60Hz ≈ 167ms; cushion for slower CI).
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector("#fps-overlay");
+        const txt = (el?.textContent ?? "").trim();
+        const m = txt.match(/^(\d+)fps/);
+        return !!m && Number(m[1]) > 0;
+      },
+      { timeout: 2000, polling: 100 },
+    );
+    const fpsText = await page.evaluate(
+      () => document.querySelector("#fps-overlay")?.textContent ?? "",
+    );
+    console.log(`[validate:visual] P6.11 FPS overlay OK ("${fpsText}")`);
+    await page.keyboard.press("Backquote");
+    await page.waitForFunction(
+      () => !document.querySelector("#fps-overlay.show"),
+      { timeout: 2000, polling: 50 },
+    );
+  } catch (err) {
+    console.error("[validate:visual] FPS overlay assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);

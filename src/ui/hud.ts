@@ -22,6 +22,22 @@ export function mountHud(): void {
   subscribeQuests(render);
 }
 
+export function setFpsOverlayText(text: string): void {
+  const el = document.getElementById("fps-overlay");
+  if (el) el.textContent = text;
+}
+
+export function setFpsOverlayVisible(visible: boolean): void {
+  const el = document.getElementById("fps-overlay");
+  if (!el) return;
+  el.classList.toggle("show", visible);
+}
+
+export function isFpsOverlayVisible(): boolean {
+  const el = document.getElementById("fps-overlay");
+  return !!el && el.classList.contains("show");
+}
+
 function render(): void {
   const gold = getGold();
   const all = getQuests();

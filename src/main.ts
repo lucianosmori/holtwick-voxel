@@ -14,7 +14,7 @@ import { NPC_SPAWNS } from "./data/npcSpawns";
 import type { NpcDef } from "./data/npc.schema";
 import { DayNight } from "./world/dayNight";
 import { bindTitle } from "./ui/title";
-import { mountHud } from "./ui/hud";
+import { isFpsOverlayVisible, mountHud, setFpsOverlayText, setFpsOverlayVisible } from "./ui/hud";
 import { acceptQuest, bindCollectAutoComplete, getGold, getQuestState, getQuests } from "./game/quests";
 import { itemById } from "./data/items";
 import { addItem, getInventory, getItemCount, isPicked, markPicked, type InventoryStack } from "./game/inventory";
@@ -344,6 +344,22 @@ function faceBillboards() {
 }
 faceBillboards();
 
+// P6.11 FPS overlay sampler — rolling 60-frame window of frame durations,
+// render the HUD text every 10 frames so the readout doesn't jitter every
+// frame. Hidden by default; backtick keydown toggles visibility.
+const FPS_WINDOW = 60;
+const FPS_RENDER_EVERY = 10;
+const fpsWindow = new Float32Array(FPS_WINDOW);
+let fpsWindowIdx = 0;
+let fpsWindowFilled = 0;
+let fpsRenderCounter = 0;
+
+function isEditableTarget(target: EventTarget | null): boolean {
+  const el = target as HTMLElement | null;
+  if (!el) return false;
+  return el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable;
+}
+
 const bootMs = performance.now();
 let last = bootMs;
 function frame(now: number) {
@@ -364,12 +380,35 @@ function frame(now: number) {
   updateCamera();
   faceBillboards();
   renderer.render(scene, camera);
+
+  fpsWindow[fpsWindowIdx] = dt;
+  fpsWindowIdx = (fpsWindowIdx + 1) % FPS_WINDOW;
+  if (fpsWindowFilled < FPS_WINDOW) fpsWindowFilled++;
+  fpsRenderCounter++;
+  if (fpsRenderCounter >= FPS_RENDER_EVERY && isFpsOverlayVisible()) {
+    fpsRenderCounter = 0;
+    let sum = 0;
+    for (let i = 0; i < fpsWindowFilled; i++) sum += fpsWindow[i];
+    const avgDt = sum / fpsWindowFilled;
+    const fps = avgDt > 0 ? Math.round(1 / avgDt) : 0;
+    const ms = (avgDt * 1000).toFixed(1);
+    const draw = renderer.info.render.calls;
+    setFpsOverlayText(`${fps}fps · ${draw} draw · ${ms}ms`);
+  }
+
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
 window.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeDialog();
+});
+
+window.addEventListener("keydown", (e) => {
+  if (e.code !== "Backquote" || e.repeat) return;
+  if (isEditableTarget(e.target)) return;
+  e.preventDefault();
+  setFpsOverlayVisible(!isFpsOverlayVisible());
 });
 
 const spawnedItemCount = worldItems.reduce((n, it) => n + (it ? 1 : 0), 0);
