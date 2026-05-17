@@ -18,6 +18,7 @@ import {
   type BarkNpc,
 } from "./ui/npcBark";
 import { bindInventory, openInventory, closeInventory, isInventoryOpen } from "./ui/inventory";
+import { bindKeyHelp, openKeyHelp, closeKeyHelp, isKeyHelpOpen } from "./ui/keyhelp";
 import { pushToast } from "./ui/toast";
 import { NPC_SPAWNS } from "./data/npcSpawns";
 import type { NpcDef } from "./data/npc.schema";
@@ -247,6 +248,7 @@ setupJoystick((v) => {
 
 bindDialog(() => scheduleSave());
 bindInventory();
+bindKeyHelp();
 bindSettings({ dayNight });
 
 // P6.8 audio bootstrap. Browsers block AudioContext creation/resume until a
@@ -321,6 +323,9 @@ if (isTestRun) {
     openInventory: () => void;
     closeInventory: () => void;
     isInventoryOpen: () => boolean;
+    openKeyHelp: () => void;
+    closeKeyHelp: () => void;
+    isKeyHelpOpen: () => boolean;
     flushSave: () => void;
     clearSave: () => void;
     getDayNightPhase: () => number;
@@ -380,6 +385,9 @@ if (isTestRun) {
     openInventory,
     closeInventory,
     isInventoryOpen,
+    openKeyHelp,
+    closeKeyHelp,
+    isKeyHelpOpen,
     flushSave,
     clearSave,
     getDayNightPhase: () => dayNight.currentPhase,

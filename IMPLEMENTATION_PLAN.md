@@ -818,16 +818,27 @@ at P9.6.
   captures `iter-${ITER}-spring.png`. Build green 539.07 kB (+2.09 kB
   vs iter 49's 536.98 kB).
 
-- [ ] **P8.8** Keybind help modal (`?` key opens). Files:
-  `src/ui/keyhelp.ts` (new). Modal lists every keyboard control
-  with a brief description: WASD (move), Mouse (look — currently
-  fixed; placeholder for future), E (interact with NPC), I
-  (inventory), ` (FPS overlay), Escape (close modal), Gear icon
-  (settings). `?` keydown opens (gated by `isEditableTarget`),
-  Escape closes.
-
-  **Done when:** Playwright presses `?`, asserts modal visible with
-  ≥6 keybind entries.
+- [x] ~~**P8.8** Keybind help modal (`?` key opens).~~ (iter 51 —
+  `src/ui/keyhelp.ts` `bindKeyHelp()` renders 8 keybind rows into
+  `#keyhelp-list` from a typed `BINDINGS` array (WASD move, Mouse
+  look-placeholder, E talk, I inventory, ` FPS overlay, ? this modal,
+  Esc close, ⚙ settings). `?` keydown toggles open/close, gated by
+  `isEditableTarget` + `e.repeat` so holding the key doesn't strobe
+  and typing `?` into the chat input still echoes the character.
+  Escape inside the modal closes; backdrop click closes; close button
+  closes. `index.html` adds `#keyhelp-backdrop` + `#keyhelp` (z-index
+  130, above settings' 120 / inventory's 110 / dialog's 100) plus CSS
+  rows (2-col grid: 120px key cell + 1fr description) with the same
+  modal palette as the inventory/settings dialogs and `kbd` chips
+  matching the title-screen control hints. `src/main.ts` calls
+  `bindKeyHelp()` between `bindInventory()` and `bindSettings(...)`
+  and exposes `openKeyHelp/closeKeyHelp/isKeyHelpOpen` on
+  `__voxelTest__`. `scripts/validate-visual.mjs` P8.8 block asserts
+  closed at boot, presses `?`, waits ≤2s for `.show`, asserts
+  `#keyhelp-list .keyhelp-row` count ≥ 6, captures
+  `iter-${ITER}-keyhelp.png`, presses Escape, waits ≤2s for `.show`
+  to clear. Build green 540.75 kB main bundle (+1.68 kB vs iter 50's
+  539.07 kB — new module + 8-row DOM + CSS rules).
 
 ## Priority 9 — Voxel polish layer (stack-locked 2026-05-17)
 

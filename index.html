@@ -665,6 +665,83 @@
         opacity: 1;
         transform: translateY(0);
       }
+
+      /* P8.8 keybind help modal (`?` key opens). Same modal palette as the
+         inventory + settings dialogs; rows are 2-col grid (key cell + desc). */
+      #keyhelp-backdrop {
+        display: none;
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 130;
+        align-items: center; justify-content: center;
+        padding: 20px;
+      }
+      #keyhelp-backdrop.show { display: flex; }
+      #keyhelp {
+        background: #1d2230;
+        border: 2px solid #4a5775;
+        border-radius: 12px;
+        padding: 18px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        min-width: 340px;
+        max-width: 460px;
+        width: 100%;
+      }
+      #keyhelp-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #ffc850;
+        font-weight: 700;
+        font-size: 18px;
+      }
+      #keyhelp-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .keyhelp-row {
+        display: grid;
+        grid-template-columns: 120px 1fr;
+        gap: 12px;
+        align-items: center;
+        padding: 4px 0;
+      }
+      .keyhelp-keys {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .keyhelp-keys kbd {
+        display: inline-block;
+        min-width: 22px;
+        padding: 2px 7px;
+        background: #2a2f3d;
+        border: 1px solid #4a5775;
+        border-bottom-width: 2px;
+        border-radius: 4px;
+        color: #e8e8e8;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 12px;
+        text-align: center;
+      }
+      .keyhelp-desc {
+        color: #d8e4ff;
+        font-size: 13px;
+        line-height: 1.4;
+      }
+      #keyhelp-close {
+        align-self: flex-end;
+        padding: 6px 14px;
+        background: #555;
+        border: none;
+        border-radius: 6px;
+        color: #fff;
+        font-weight: 600;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
@@ -732,6 +809,16 @@
     <div id="npc-bark-layer"></div>
 
     <div id="fps-overlay"></div>
+
+    <div id="keyhelp-backdrop" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+      <div id="keyhelp">
+        <div id="keyhelp-header">
+          <span>Keyboard shortcuts</span>
+        </div>
+        <div id="keyhelp-list"></div>
+        <button id="keyhelp-close" type="button">Close</button>
+      </div>
+    </div>
 
     <div id="inventory-backdrop" role="dialog" aria-modal="true" aria-label="Inventory">
       <div id="inventory">

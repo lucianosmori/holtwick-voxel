@@ -1473,6 +1473,42 @@ try {
     failed = true;
   }
 
+  // P8.8 keybind help modal. Press `?`, assert backdrop has .show + the
+  // rendered keybind list has ≥6 rows; press Escape, assert it closes.
+  try {
+    const initiallyOpen = await page.evaluate(() =>
+      (window).__voxelTest__.isKeyHelpOpen(),
+    );
+    if (initiallyOpen) {
+      throw new Error("keyhelp should be closed at boot");
+    }
+    await page.keyboard.press("?");
+    await page.waitForFunction(
+      () => document.getElementById("keyhelp-backdrop")?.classList.contains("show"),
+      { timeout: 2000 },
+    );
+    const rowCount = await page.evaluate(
+      () => document.querySelectorAll("#keyhelp-list .keyhelp-row").length,
+    );
+    if (rowCount < 6) {
+      throw new Error(`expected ≥6 keybind rows, got ${rowCount}`);
+    }
+    const keyHelpShot = `artifacts/screenshots/iter-${ITER}-keyhelp.png`;
+    await page.screenshot({ path: keyHelpShot, fullPage: true });
+    console.log(`[validate:visual] keyhelp screenshot -> ${keyHelpShot}`);
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !document.getElementById("keyhelp-backdrop")?.classList.contains("show"),
+      { timeout: 2000 },
+    );
+    console.log(
+      `[validate:visual] P8.8 keybind help OK (${rowCount} rows, open via ? + close via Esc)`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] P8.8 keybind help assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);
