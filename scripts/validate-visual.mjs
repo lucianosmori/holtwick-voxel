@@ -1215,6 +1215,36 @@ try {
     failed = true;
   }
 
+  // P8.3 time-of-day HUD label under the minimap. The bucket mapping is the
+  // spec, not the actual solar elevation — phase 0.85 ∈ [0.75, 1.0) so the
+  // label must read "Night". We drive the phase through the test hook (the
+  // `?dayNight=` URL param is equivalent but would require a reload).
+  try {
+    const cases = [
+      { phase: 0.1, label: "Morning" },
+      { phase: 0.4, label: "Noon" },
+      { phase: 0.6, label: "Dusk" },
+      { phase: 0.85, label: "Night" },
+    ];
+    for (const { phase, label } of cases) {
+      await page.evaluate((p) => (window).__voxelTest__.setDayNightPhase(p), phase);
+      const actual = await page.evaluate(
+        () => document.getElementById("hud-time")?.textContent?.trim() ?? "",
+      );
+      if (actual !== label) {
+        throw new Error(
+          `expected hud-time "${label}" at phase=${phase}, got "${actual}"`,
+        );
+      }
+    }
+    console.log(
+      `[validate:visual] P8.3 time-of-day OK (Morning/Noon/Dusk/Night buckets match)`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] P8.3 time-of-day assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);

@@ -23,7 +23,7 @@ import { NPC_SPAWNS } from "./data/npcSpawns";
 import type { NpcDef } from "./data/npc.schema";
 import { DayNight } from "./world/dayNight";
 import { bindTitle } from "./ui/title";
-import { isFpsOverlayVisible, mountHud, setFpsOverlayText, setFpsOverlayVisible } from "./ui/hud";
+import { isFpsOverlayVisible, mountHud, setFpsOverlayText, setFpsOverlayVisible, setTimeOfDayLabel } from "./ui/hud";
 import { acceptQuest, bindCollectAutoComplete, getGold, getQuestState, getQuests } from "./game/quests";
 import { itemById } from "./data/items";
 import { addItem, getInventory, getItemCount, isPicked, markPicked, type InventoryStack } from "./game/inventory";
@@ -354,6 +354,7 @@ if (isTestRun) {
     setDayNightPhase: (p) => {
       dayNight.setPhase(p);
       updateLanterns(lanterns, dayNight.currentPhase);
+      setTimeOfDayLabel(dayNight.currentPhase);
     },
     getLanternIntensities: () =>
       lanterns.map((l) => ({ label: l.label, intensity: l.light.intensity })),
@@ -415,6 +416,11 @@ let fpsRenderCounter = 0;
 const MINIMAP_RENDER_EVERY = 10;
 let minimapCounter = 0;
 const LANTERN_LIT_THRESHOLD = 0.5;
+
+// P8.3 time-of-day HUD label — ticks every 30 frames per spec.
+const TIME_LABEL_RENDER_EVERY = 30;
+let timeLabelCounter = 0;
+setTimeOfDayLabel(dayNight.currentPhase);
 
 function tickMinimap(): void {
   const npcsForMap = interactables.map((n) => ({
@@ -482,6 +488,11 @@ function frame(now: number) {
   if (minimapCounter >= MINIMAP_RENDER_EVERY) {
     minimapCounter = 0;
     tickMinimap();
+  }
+  timeLabelCounter++;
+  if (timeLabelCounter >= TIME_LABEL_RENDER_EVERY) {
+    timeLabelCounter = 0;
+    setTimeOfDayLabel(dayNight.currentPhase);
   }
 
   fpsRenderCounter++;

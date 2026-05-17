@@ -670,13 +670,22 @@ at P9.6.
   `iter-${ITER}-toast.png`. Build green 524.25 kB (+0.46 kB vs iter
   44's 523.79 kB).
 
-- [ ] **P8.3** Time-of-day HUD label (under minimap). Files: extend
-  `src/ui/hud.ts`. Shows "Morning" (0.0-0.25), "Noon" (0.25-0.5),
-  "Dusk" (0.5-0.75), "Night" (0.75-1.0) based on `dayNight.phase`.
-  Update every 30 frames.
-
-  **Done when:** Playwright loads `?dayNight=0.85`, asserts HUD shows
-  "Night".
+- [x] ~~**P8.3** Time-of-day HUD label (under minimap).~~ (iter 46 —
+  `src/ui/hud.ts` exports `setTimeOfDayLabel(phase)` that maps the wrapped
+  phase to one of `["Morning", "Noon", "Dusk", "Night"]` via
+  `Math.min(3, Math.floor(wrapped * 4))` so the spec bucket boundaries
+  (0-0.25 / 0.25-0.5 / 0.5-0.75 / 0.75-1) are exact; skips DOM writes when
+  the label hasn't changed. `index.html` adds `<div id="hud-time">Morning</div>`
+  directly under the minimap with 150px width matching the minimap, amber
+  border + monospace caps so it reads as a sibling chip. `src/main.ts`
+  imports `setTimeOfDayLabel`, calls it once on init from
+  `dayNight.currentPhase`, then again every `TIME_LABEL_RENDER_EVERY=30`
+  frames inside `frame()` next to the minimap tick; the test hook
+  `setDayNightPhase` also forces an immediate label refresh so the gate
+  doesn't have to wait 30 frames. `scripts/validate-visual.mjs` P8.3 block
+  walks all 4 phase buckets (0.1→Morning, 0.4→Noon, 0.6→Dusk,
+  0.85→Night) via the test hook and asserts each label round-trips through
+  `#hud-time`. Build green 524.58 kB (+0.33 kB vs iter 45's 524.25 kB).
 
 - [ ] **P8.4** Animated water + chimney smoke (combined). Files:
   `src/world/waterAnim.ts` (new), `src/render/particles.ts` (new),

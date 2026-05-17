@@ -467,6 +467,30 @@
         z-index: 5;
       }
 
+      /* P8.3 time-of-day label — sits directly under the minimap, mirrors
+         its 150px width + amber palette. Caller in src/ui/hud.ts swaps the
+         text between Morning / Noon / Dusk / Night every 30 frames. */
+      #hud-time {
+        position: fixed;
+        top: 174px;
+        left: 16px;
+        width: 150px;
+        box-sizing: border-box;
+        padding: 4px 0;
+        background: rgba(15, 18, 26, 0.85);
+        border: 1px solid rgba(255, 200, 80, 0.35);
+        border-radius: 6px;
+        color: #ffc850;
+        font-family: ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        text-align: center;
+        pointer-events: none;
+        opacity: 0.9;
+        z-index: 5;
+      }
+
       /* Settings gear (P7.4) — top-right 36×36 button above the HUD. */
       #settings-gear {
         position: fixed;
@@ -675,6 +699,7 @@
     </div>
 
     <canvas id="minimap" width="150" height="150"></canvas>
+    <div id="hud-time">Morning</div>
 
     <button id="settings-gear" type="button" aria-label="Settings" title="Settings">⚙</button>
 

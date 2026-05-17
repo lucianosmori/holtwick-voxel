@@ -38,6 +38,22 @@ export function isFpsOverlayVisible(): boolean {
   return !!el && el.classList.contains("show");
 }
 
+// P8.3 time-of-day HUD label (under minimap). Maps the DayNight cycle phase
+// to one of 4 buckets — bucket boundaries are the spec, not the actual solar
+// elevation (the cycle starts at noon, not midnight). Caller is responsible
+// for throttling; main.ts ticks every 30 frames.
+const TIME_LABELS = ["Morning", "Noon", "Dusk", "Night"] as const;
+
+export function setTimeOfDayLabel(phase: number): void {
+  const el = document.getElementById("hud-time");
+  if (!el) return;
+  if (!Number.isFinite(phase)) return;
+  const wrapped = ((phase % 1) + 1) % 1;
+  const bucket = Math.min(3, Math.max(0, Math.floor(wrapped * 4)));
+  const label = TIME_LABELS[bucket];
+  if (el.textContent !== label) el.textContent = label;
+}
+
 function render(): void {
   const gold = getGold();
   const all = getQuests();
