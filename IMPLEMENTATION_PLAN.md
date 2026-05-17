@@ -625,13 +625,23 @@ Stack-locked 2026-05-16. Pure content/visual/HUD additions, zero new
 mechanics. Loop continues past P8 into P9 voxel polish, then graduates
 at P9.6.
 
-- [ ] **P8.1** Decorative props: barrels + crates instanced near
-  buildings. Files: `src/world/props.ts` (new), instanced cubes
-  with plank texture, 20 props seeded around tavern/forge/well/stalls.
-  Skip cells on roads, in plaza center, inside buildings.
-
-  **Done when:** Playwright screenshot shows visible plank barrels/crates
-  adjacent to at least 2 of the 4 new building locations.
+- [x] ~~**P8.1** Decorative props: barrels + crates instanced near
+  buildings.~~ (iter 44 — `src/world/props.ts` `computeProps(seed, grid,
+  reserved, count=20)` walks `mulberry32(seed ^ 0xb022)` over the 1-cell
+  ring outside each of 5 building zones (tavern, blacksmith, well, 2
+  stalls), keeps only grass cells (`VOXEL_FLOOR` at y=0) with an empty
+  column at y≥1, dodging cells reserved by NPCs/items/trees. Per-zone
+  targets sum to 20: tavern 6 + blacksmith 6 + well 4 + stalls 2 each.
+  Each prop is randomly barrel (scale 0.6×0.9×0.6, darker dirt texture
+  reads as banded staves) or crate (scale 0.7³, plank texture) — two
+  `InstancedMesh` siblings on the shared 1×1×1 `BoxGeometry`, both
+  shadow-cast/receive. Reserved cells in `main.ts` = NPC spawns + item
+  spawns + tree cells (foliage already runs first). Mesh positioned at
+  same `gridOffset` as voxel mesh; `__voxelTest__.getPropPositions()`
+  exposes cell+world coords + type. `validate-visual.mjs` P8.1 block
+  asserts 20 props total + adjacency to ≥2 of {tavern, blacksmith, well,
+  stalls} via inflated-bbox cell tests, warps player near a tavern prop
+  and captures `iter-${ITER}-props.png`. Build green 523.79 kB.)
 
 - [ ] **P8.2** Toast notification system (animated bottom-center).
   Files: `src/ui/toast.ts` (new), CSS in `index.html`. Replaces the

@@ -3,6 +3,7 @@ import { bootstrapScene, CAMERA_OFFSET } from "./render/scene";
 import { buildVillage, computeItemSpawns, VILLAGE_DEPTH, VILLAGE_WIDTH, type ItemSpawn } from "./world/village";
 import { buildVoxelMesh } from "./render/voxelMesh";
 import { buildFoliageMesh, computeFoliage } from "./world/foliage";
+import { buildPropMesh, computeProps, type PropPlacement } from "./world/props";
 import { Player, PLAYER_HALF } from "./entities/player";
 import { BillboardNpc, NPC_Y } from "./entities/npc";
 import { NpcWalker } from "./entities/npcWalker";
@@ -164,6 +165,21 @@ const foliageMesh = buildFoliageMesh(trees);
 foliageMesh.position.copy(gridOffset);
 scene.add(foliageMesh);
 
+// P8.1 decorative props: 20 barrels + crates seeded onto the 1-cell ring
+// around each building footprint. Reserved cells include NPCs, items, and
+// trees so props don't double-stack on top of existing scenery. Deterministic
+// on (villageSeed XOR 0xb022) so adding/removing props doesn't shift voxel
+// layout or foliage.
+const PROPS_SEED = VILLAGE_SEED;
+const propReserved: Array<{ cellX: number; cellZ: number }> = [];
+for (const s of NPC_SPAWNS) propReserved.push({ cellX: s.cellX, cellZ: s.cellZ });
+for (const s of itemSpawns) propReserved.push({ cellX: s.cellX, cellZ: s.cellZ });
+for (const t of trees) propReserved.push({ cellX: t.cellX, cellZ: t.cellZ });
+const props: PropPlacement[] = computeProps(PROPS_SEED, world, propReserved);
+const propMesh = buildPropMesh(props);
+propMesh.position.copy(gridOffset);
+scene.add(propMesh);
+
 // P6.10 lantern night lighting. Four warm PointLights — tavern doorway plus
 // three plaza corners — ramp from 0 by day to ~1.5 by midnight, driven by
 // dayNight.currentPhase in the RAF loop below.
@@ -302,6 +318,7 @@ if (isTestRun) {
     forceBark: (npcId: string) => boolean;
     getBarkCount: () => number;
     getBarkTexts: () => string[];
+    getPropPositions: () => Array<{ type: string; cellX: number; cellZ: number; x: number; z: number }>;
   }
   const hook: VoxelTestHook = {
     openDialog: (npcId?: string) => {
@@ -365,6 +382,14 @@ if (isTestRun) {
       Array.from(document.querySelectorAll<HTMLDivElement>(".npc-bark")).map(
         (el) => el.textContent ?? "",
       ),
+    getPropPositions: () =>
+      props.map((p) => ({
+        type: p.type,
+        cellX: p.cellX,
+        cellZ: p.cellZ,
+        x: gridOffset.x + p.cellX + 0.5,
+        z: gridOffset.z + p.cellZ + 0.5,
+      })),
   };
   (window as unknown as { __voxelTest__?: VoxelTestHook }).__voxelTest__ = hook;
 }
@@ -498,5 +523,5 @@ window.addEventListener("keydown", (e) => {
 
 const spawnedItemCount = worldItems.reduce((n, it) => n + (it ? 1 : 0), 0);
 console.log(
-  `boot ok — Holtwick Voxel, ${interactables.length} NPCs, ${spawnedItemCount} items, ${trees.length} trees spawned`,
+  `boot ok — Holtwick Voxel, ${interactables.length} NPCs, ${spawnedItemCount} items, ${trees.length} trees, ${props.length} props spawned`,
 );

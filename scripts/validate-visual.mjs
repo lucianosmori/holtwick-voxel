@@ -1092,6 +1092,68 @@ try {
     failed = true;
   }
 
+  // P8.1 decorative props: 20 barrels + crates seeded on the 1-cell ring
+  // around tavern + blacksmith + well + 2 stalls. Done-when: props are
+  // adjacent to at least 2 of the 4 new building locations (tavern, blacksmith,
+  // well, stalls). Checks by world-coord proximity to each building's
+  // centre — a prop counts as "adjacent" if it lies within a small inflated
+  // bounding box around the footprint.
+  try {
+    const props = await page.evaluate(() =>
+      (window).__voxelTest__.getPropPositions(),
+    );
+    if (!Array.isArray(props) || props.length < 1) {
+      throw new Error(`expected props, got ${JSON.stringify(props)}`);
+    }
+    // Cell-space inflated bounding boxes for each building (1-cell ring
+    // outside the footprint, matches what `computeProps` actually targets).
+    // Stalls are merged into a single zone since the spec only requires ≥2 of
+    // the 4 building TYPES (tavern, blacksmith, well, stalls).
+    const zones = [
+      { label: "tavern", minX: 27, maxX: 36, minZ: 13, maxZ: 20 },
+      { label: "blacksmith", minX: 17, maxX: 24, minZ: 19, maxZ: 26 },
+      { label: "well", minX: 43, maxX: 49, minZ: 27, maxZ: 33 },
+      { label: "stalls", minX: 19, maxX: 27, minZ: 35, maxZ: 38 },
+    ];
+    const hits = new Map(zones.map((z) => [z.label, 0]));
+    for (const p of props) {
+      for (const z of zones) {
+        if (p.cellX >= z.minX && p.cellX <= z.maxX && p.cellZ >= z.minZ && p.cellZ <= z.maxZ) {
+          hits.set(z.label, (hits.get(z.label) ?? 0) + 1);
+        }
+      }
+    }
+    const buildingsWithProps = Array.from(hits.entries()).filter(([, n]) => n > 0);
+    if (buildingsWithProps.length < 2) {
+      throw new Error(
+        `expected props adjacent to ≥2 buildings, got ${buildingsWithProps.length}: ` +
+          `${JSON.stringify(Object.fromEntries(hits))}`,
+      );
+    }
+    if (props.length !== 20) {
+      throw new Error(`expected 20 props, got ${props.length}`);
+    }
+    // Warp the player near the tavern so the props are framed in the shot.
+    const tavernHit = props.find((p) => p.cellX >= 27 && p.cellX <= 36 && p.cellZ >= 13 && p.cellZ <= 20);
+    if (tavernHit) {
+      await page.evaluate(
+        ({ x, z }) => (window).__voxelTest__.movePlayerTo(x, z + 4),
+        { x: tavernHit.x, z: tavernHit.z },
+      );
+      await wait(200);
+    }
+    const propsShot = `artifacts/screenshots/iter-${ITER}-props.png`;
+    await page.screenshot({ path: propsShot, fullPage: true });
+    console.log(`[validate:visual] props screenshot -> ${propsShot}`);
+    const summary = Array.from(hits.entries()).map(([k, v]) => `${k}=${v}`).join(", ");
+    console.log(
+      `[validate:visual] P8.1 props OK (${props.length} total, adjacent to ${buildingsWithProps.length}/4 building types: ${summary})`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] props assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);
