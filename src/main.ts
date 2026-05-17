@@ -11,6 +11,7 @@ import { NPC_SPAWNS } from "./data/npcSpawns";
 import type { NpcDef } from "./data/npc.schema";
 import { DayNight } from "./world/dayNight";
 import { bindTitle } from "./ui/title";
+import { acceptQuest, getGold, getQuestState, getQuests } from "./game/quests";
 
 bindTitle();
 
@@ -69,9 +70,26 @@ bindInteract((npc) => {
 // `?test=1` exposes a small hook for `scripts/validate-visual.mjs` to drive
 // the dialog without needing to position the player next to an NPC.
 if (typeof location !== "undefined" && new URLSearchParams(location.search).get("test") === "1") {
-  (window as unknown as { __voxelTest__?: { openDialog: () => void } }).__voxelTest__ = {
-    openDialog: () => openDialog(interactables[0].def),
+  interface VoxelTestHook {
+    openDialog: (npcId?: string) => void;
+    acceptQuest: (questId: string) => boolean;
+    getQuestState: typeof getQuestState;
+    getQuests: typeof getQuests;
+    getGold: () => number;
+  }
+  const hook: VoxelTestHook = {
+    openDialog: (npcId?: string) => {
+      const target = npcId
+        ? interactables.find((n) => n.id === npcId)
+        : interactables[0];
+      if (target) openDialog(target.def);
+    },
+    acceptQuest,
+    getQuestState,
+    getQuests,
+    getGold,
   };
+  (window as unknown as { __voxelTest__?: VoxelTestHook }).__voxelTest__ = hook;
 }
 
 function updateCamera() {

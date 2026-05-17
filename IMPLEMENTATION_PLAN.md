@@ -72,7 +72,7 @@ PixelLab credit-blocked items (P3.1b through P3.3) stay BLOCKED — do not
 attempt sprite generation during this burn even if you walk past them in
 the priority order.
 
-- [ ] **P6.1** Quest schema + first quest (Edda → Aldric → 10 gold reward).
+- [x] ~~**P6.1** Quest schema + first quest (Edda → Aldric → 10 gold reward).
   Files: `src/data/quest.schema.ts` (new), `src/data/quests.ts` (new),
   `src/game/quests.ts` (new) for state machine + event log,
   `src/data/npcSpawns.ts` add optional `quest?: string` per NPC,
@@ -81,7 +81,22 @@ the priority order.
   set state to `in_progress`, fire `onQuestAccepted` event, toast in HUD.
   Walking to Aldric + opening dialog → auto-complete trigger fires (per
   `quest.trigger.type === "talk_to"`), state → `complete`, 10 gold awarded,
-  toast.
+  toast.~~ (iter 23 — schema + state machine + `QUESTS[edda_find_aldric]`
+  shipped; accept row injected between `#chat-messages` and `#chat-input-row`
+  in `index.html` (CSS in same file), `dialog.ts` calls `onTalkTo(npc.id)` on
+  open to auto-complete in_progress `talk_to` quests targeting this NPC and
+  appends `[Quest complete: … +N gold]` lines into the chat for confirmation.
+  `npcSpawns.ts` left untouched — quest associations derive from
+  `QuestDef.giver_npc_id`, no duplication needed. `__voxelTest__` hook
+  extended: `openDialog(npcId?)`, `acceptQuest(id)`, `getQuestState(id)`,
+  `getQuests()`, `getGold()` — existing no-arg callers (validate-visual main
+  flow + test-dialog) keep working since `npcId` is optional. HUD toast
+  intentionally not built here — `P6.2` owns the HUD; the in-chat
+  confirmation line keeps the flow legible without it. `validate-visual.mjs`
+  extended with the full Edda→accept→Aldric→complete flow asserting
+  `getQuestState("edda_find_aldric").status === "complete"` and
+  `getGold() === 10`; capture at `artifacts/screenshots/iter-${ITER}-quest.png`.
+  All three gates green.)
 
   **Schema:**
   ```typescript

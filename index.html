@@ -169,6 +169,27 @@
       }
       #dialog-close { background: #555; align-self: flex-end; }
 
+      #dialog-quest-row {
+        display: none;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 10px;
+        background: rgba(255, 200, 80, 0.12);
+        border: 1px solid rgba(255, 200, 80, 0.45);
+        border-radius: 6px;
+      }
+      #dialog-quest-row.show { display: flex; }
+      #dialog-quest-accept {
+        padding: 6px 12px;
+        background: #ffc850;
+        color: #1d2230;
+        border: none;
+        border-radius: 4px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      #dialog-quest-title { color: #ffc850; font-size: 13px; }
+
       /* Title screen — first thing the player sees */
       #title-screen {
         position: fixed; inset: 0;
@@ -274,6 +295,10 @@
           <div id="dialog-name">NPC</div>
         </div>
         <div id="chat-messages"></div>
+        <div id="dialog-quest-row">
+          <button id="dialog-quest-accept" type="button">Accept quest</button>
+          <span id="dialog-quest-title"></span>
+        </div>
         <div id="chat-input-row">
           <input id="chat-input" type="text" placeholder="Say something..." autocomplete="off" />
           <button id="chat-send" type="button">Send</button>

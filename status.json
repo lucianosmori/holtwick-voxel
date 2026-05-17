@@ -1,10 +1,10 @@
 {
     "updated_at":  "2026-05-16",
-    "iteration":  22,
+    "iteration":  23,
     "started_at":  "2026-05-12T00:00:00Z",
     "experiment":  "holtwick-voxel",
     "consecutive_no_progress":  0,
     "last_error":  null,
     "status":  "exploring",
-    "last_outcome":  "P4.2 done — dialog modal streams WebLLM tokens on Send (lazy-loaded Qwen2.5-1.5B) with `isWebGpuUsable()` precheck + scripted-bark fallback (Edda persona via new `src/data/tavernCast.ts`). Validate-visual extended with `?test=1` window hook to open the dialog, dispatch Send via `evaluate`, and capture iter-${ITER}-dialog.png. Build + visual gate green. Next: P4.3 TTS or jump to P4.4 day/night (P3.x still BLOCKED on PixelLab credit top-up)."
+    "last_outcome":  "P6.1 done — quest schema + first quest (Edda → Aldric → 10 gold). New `data/quest.schema.ts` + `data/quests.ts` + `game/quests.ts` (state machine, gold purse, subscribe/emit, `acceptQuest`/`completeQuest`/`onTalkTo`); `ui/dialog.ts` injects accept-row when NPC has not_started quest, auto-completes `talk_to` quests on dialog open and appends `[Quest complete: … +N gold]` chat line; `index.html` + `main.ts` updated, `__voxelTest__` extended with `openDialog(npcId?)`/`acceptQuest`/`getQuestState`/`getQuests`/`getGold`; `validate-visual.mjs` asserts the full Edda→accept→Aldric→complete + 10 gold flow with new iter-${ITER}-quest.png capture. Build + visual + test:dialog all green. Next: P6.2 HUD (quest log + gold counter)."
 }

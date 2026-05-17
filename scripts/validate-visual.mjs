@@ -181,6 +181,70 @@ try {
     failed = true;
   }
 
+  // P6.1 quest flow: Edda offers "Find Aldric", player accepts, walks to
+  // Aldric (here: opens his dialog via the test hook), quest auto-completes,
+  // +10 gold awarded.
+  try {
+    await page.evaluate(() => (window).__voxelTest__.openDialog("edda"));
+    await page.waitForFunction(
+      () => document.querySelector("#dialog-backdrop")?.classList.contains("show"),
+      { timeout: 3000 },
+    );
+    const acceptVisible = await page.evaluate(() => {
+      const row = document.querySelector("#dialog-quest-row");
+      return !!row && row.classList.contains("show");
+    });
+    if (!acceptVisible) throw new Error("Edda dialog did not show accept-quest row");
+
+    await page.evaluate(() =>
+      document.querySelector("#dialog-quest-accept").click(),
+    );
+    const afterAccept = await page.evaluate(() =>
+      (window).__voxelTest__.getQuestState("edda_find_aldric"),
+    );
+    if (afterAccept?.status !== "in_progress") {
+      throw new Error(
+        `quest not in_progress after accept, got ${JSON.stringify(afterAccept)}`,
+      );
+    }
+
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !document.querySelector("#dialog-backdrop.show"),
+      { timeout: 3000 },
+    );
+
+    await page.evaluate(() => (window).__voxelTest__.openDialog("aldric"));
+    await page.waitForFunction(
+      () => document.querySelector("#dialog-backdrop")?.classList.contains("show"),
+      { timeout: 3000 },
+    );
+    const afterTalk = await page.evaluate(() =>
+      (window).__voxelTest__.getQuestState("edda_find_aldric"),
+    );
+    const gold = await page.evaluate(() => (window).__voxelTest__.getGold());
+    if (afterTalk?.status !== "complete") {
+      throw new Error(
+        `quest not complete after talking to aldric, got ${JSON.stringify(afterTalk)}`,
+      );
+    }
+    if (gold !== 10) throw new Error(`gold should be 10, got ${gold}`);
+
+    const questShot = `artifacts/screenshots/iter-${ITER}-quest.png`;
+    await page.screenshot({ path: questShot, fullPage: true });
+    console.log(`[validate:visual] quest screenshot -> ${questShot}`);
+
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !document.querySelector("#dialog-backdrop.show"),
+      { timeout: 3000 },
+    );
+    console.log("[validate:visual] P6.1 quest flow OK (edda → accept → aldric → +10 gold)");
+  } catch (err) {
+    console.error("[validate:visual] quest flow assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);

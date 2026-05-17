@@ -6,6 +6,8 @@
 
 import type { NpcDef } from "../data/npc.schema";
 import { streamProxyReply, warmupProxy } from "../chat/proxy";
+import { questsGivenBy, questById } from "../data/quests";
+import { acceptQuest, getQuestState, onTalkTo } from "../game/quests";
 
 let bound = false;
 let onCloseCb: (() => void) | null = null;
@@ -55,9 +57,43 @@ export function openDialog(npc: NpcDef): void {
   messages.innerHTML = "";
   const greeting = pickRandom(npc.barks_idle) ?? `I am ${npc.name}.`;
   appendMessage("assistant", greeting);
+
+  for (const qid of onTalkTo(npc.id)) {
+    const def = questById(qid);
+    if (def) {
+      appendMessage(
+        "assistant",
+        `[Quest complete: ${def.title} — received ${def.reward.gold} gold]`,
+      );
+    }
+  }
+
+  renderQuestRow(npc);
+
   $("dialog-backdrop").classList.add("show");
   ($("chat-input") as HTMLInputElement).focus();
   warmupProxy();
+}
+
+function renderQuestRow(npc: NpcDef): void {
+  const row = $("dialog-quest-row");
+  const title = $("dialog-quest-title");
+  const btn = $("dialog-quest-accept") as HTMLButtonElement;
+  const available = questsGivenBy(npc.id).find(
+    (q) => getQuestState(q.id)?.status === "not_started",
+  );
+  if (available) {
+    title.textContent = available.title;
+    btn.onclick = () => {
+      if (!acceptQuest(available.id)) return;
+      appendMessage("assistant", `[Quest accepted: ${available.title}]`);
+      renderQuestRow(npc);
+    };
+    row.classList.add("show");
+  } else {
+    row.classList.remove("show");
+    btn.onclick = null;
+  }
 }
 
 export function closeDialog(): void {
