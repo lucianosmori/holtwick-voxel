@@ -600,21 +600,24 @@ mechanics that need design decisions overnight.
   capture `iter-${ITER}-coins.png`, Esc closes. Build green 520.74 kB
   (+0.66 kB vs iter 41's 520.08 kB).
 
-- [ ] **P7.8** README v2 (no graduation flip — moved to **P9.6**).
-  Files: `README.md`.
-
-  **Update README:**
-  - Status table fully ticked (everything through P7.7)
-  - Roster section: list all 12 NPCs + their roles
-  - Controls section: WASD, mouse, E (interact), I (inventory),
-    ` (FPS overlay), Escape (close), gear icon (settings)
-  - Recap of quest count + item count + building count
-  - Link to live demo + screenshot gallery
-
-  **Do NOT flip `status.json` to `graduated`** — graduation moved to
-  P9.6 so loop continues into P8 + P9 voxel polish layer.
-
-  **Done when:** README has the full controls + roster sections.
+- [x] ~~**P7.8** README v2 (no graduation flip — moved to **P9.6**).~~
+  (iter 43 — `README.md` rewritten: status table ticked through P7.7
+  with new rows for buildings (4 types), 12-NPC cast, walking patrols,
+  proximity idle barks, 4 quests, minimap, settings modal, title splash,
+  mobile controls, and the CI Playwright gate; added a dedicated
+  **Controls** table (WASD/arrows, joystick, `E`, `I`, backquote, gear,
+  volume slider, `Esc`); added a **Roster** table mapping all 12 NPC IDs
+  to names + roles + quest-giver annotations sourced from
+  `src/data/tavernCast.ts` + `src/data/quests.ts`; added a **Recap by
+  the numbers** section (4 quests, 3 items, 4 building types, 12 NPCs,
+  30 trees, 4 lanterns, 2-min cycle, 64×3×64 grid); Gameplay section
+  expanded with the 4-quest list + buildings paragraph + HUDs paragraph;
+  Stack section refreshed (12 NPCs not 31, 4 buildings, settings-adjustable
+  day length, picked-item indices in save schema, full CI flow listed in
+  the validation bullet); Develop-locally block adds `npm run test:dialog`
+  + a note that both gates run in CI not locally per the 2026-05-17
+  Playwright-off-the-dev-machine policy. `status.json` intentionally
+  stays at `exploring` — graduation deferred to P9.6.)
 
 ## Priority 8 — Extra overshoot (only mined if P6 + P7 land early)
 
