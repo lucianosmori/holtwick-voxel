@@ -18,15 +18,55 @@ export interface PickupEvent {
 }
 
 type Listener = (e: PickupEvent) => void;
+type PickedListener = () => void;
 
 const counts = new Map<string, number>();
 const listeners = new Set<Listener>();
+const pickedIndices = new Set<number>();
+const pickedListeners = new Set<PickedListener>();
 
 export function subscribeInventory(l: Listener): () => void {
   listeners.add(l);
   return () => {
     listeners.delete(l);
   };
+}
+
+// P6.5.1 — picked world-item indices are persisted alongside inventory counts
+// so a reload doesn't respawn an item that was already picked up (the
+// deterministic `computeItemSpawns(seed, ...)` produces the same ordering on
+// every boot, so the index is the stable handle).
+export function subscribePicked(l: PickedListener): () => void {
+  pickedListeners.add(l);
+  return () => {
+    pickedListeners.delete(l);
+  };
+}
+
+export function markPicked(index: number): void {
+  if (!Number.isInteger(index) || index < 0) return;
+  if (pickedIndices.has(index)) return;
+  pickedIndices.add(index);
+  for (const l of pickedListeners) l();
+}
+
+export function getPickedIndices(): number[] {
+  return Array.from(pickedIndices).sort((a, b) => a - b);
+}
+
+export function isPicked(index: number): boolean {
+  return pickedIndices.has(index);
+}
+
+export function restorePickedIndices(arr: number[]): void {
+  pickedIndices.clear();
+  for (const i of arr ?? []) {
+    if (Number.isInteger(i) && i >= 0) pickedIndices.add(i);
+  }
+}
+
+export function resetPickedIndices(): void {
+  pickedIndices.clear();
 }
 
 export function getInventory(): InventoryStack[] {

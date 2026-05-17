@@ -15,7 +15,7 @@ import { bindTitle } from "./ui/title";
 import { mountHud } from "./ui/hud";
 import { acceptQuest, getGold, getQuestState, getQuests } from "./game/quests";
 import { itemById } from "./data/items";
-import { addItem, getInventory, getItemCount, type InventoryStack } from "./game/inventory";
+import { addItem, getInventory, getItemCount, isPicked, markPicked, type InventoryStack } from "./game/inventory";
 import { ITEM_BASE_Y, PICKUP_RADIUS, WorldItem } from "./entities/worldItem";
 import {
   applySave,
@@ -93,10 +93,19 @@ const itemSpawns: ItemSpawn[] = computeItemSpawns(
   world,
   NPC_SPAWNS.map((s) => ({ cellX: s.cellX, cellZ: s.cellZ })),
 );
-const worldItems: WorldItem[] = [];
-for (const spawn of itemSpawns) {
+// P6.5.1 — parallel array with the same indexing as `itemSpawns`. Picked
+// slots stay null both at load (restored picked indices) and after pickup,
+// so a reload sees `picked_item_indices` in the save and skips re-spawning
+// those exact slots instead of re-creating an item under the restored
+// player position and immediately re-collecting it.
+const worldItems: (WorldItem | null)[] = [];
+for (let i = 0; i < itemSpawns.length; i++) {
+  const spawn = itemSpawns[i];
   const def = itemById(spawn.item_id);
-  if (!def) continue;
+  if (!def || isPicked(i)) {
+    worldItems.push(null);
+    continue;
+  }
   const pos = new THREE.Vector3(
     gridOffset.x + spawn.cellX + 0.5,
     ITEM_BASE_Y,
@@ -125,8 +134,9 @@ function showPickupToast(text: string): void {
 function checkPickups(): void {
   const px = player.mesh.position.x;
   const pz = player.mesh.position.z;
-  for (const it of worldItems) {
-    if (it.picked) continue;
+  for (let i = 0; i < worldItems.length; i++) {
+    const it = worldItems[i];
+    if (!it || it.picked) continue;
     const dx = it.mesh.position.x - px;
     const dz = it.mesh.position.z - pz;
     if (dx * dx + dz * dz > PICKUP_DIST_SQ) continue;
@@ -134,6 +144,8 @@ function checkPickups(): void {
     const result = addItem(it.itemId, 1);
     it.picked = true;
     it.dispose();
+    worldItems[i] = null;
+    markPicked(i);
     if (def && result && result.delta > 0) {
       showPickupToast(`+${result.delta} ${def.name}`);
     }
@@ -204,13 +216,21 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).get(
     },
     getInventory,
     getItemCount,
+    // P6.5.1 — picked slots are pruned (post-pickup OR restored from save).
+    // The test harness's "find first un-picked" pattern stays correct; new
+    // post-reload assert in validate-visual.mjs checks the entry count drops
+    // by exactly the number of picks persisted across reload.
     getItemWorldPositions: () =>
-      worldItems.map((it) => ({
-        item_id: it.itemId,
-        x: it.mesh.position.x,
-        z: it.mesh.position.z,
-        picked: it.picked,
-      })),
+      worldItems.flatMap((it) =>
+        it
+          ? [{
+              item_id: it.itemId,
+              x: it.mesh.position.x,
+              z: it.mesh.position.z,
+              picked: it.picked,
+            }]
+          : [],
+      ),
     addItem: (id, count = 1) => {
       addItem(id, count);
     },
@@ -252,7 +272,7 @@ function frame(now: number) {
   dayNight.update(dt);
   updateInteract(player.mesh, interactables);
   for (const it of worldItems) {
-    if (!it.picked) it.update(t);
+    if (it && !it.picked) it.update(t);
   }
   checkPickups();
   updateCamera();
@@ -266,4 +286,5 @@ window.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeDialog();
 });
 
-console.log(`boot ok — Holtwick Voxel, ${interactables.length} NPCs, ${worldItems.length} items spawned`);
+const spawnedItemCount = worldItems.reduce((n, it) => n + (it ? 1 : 0), 0);
+console.log(`boot ok — Holtwick Voxel, ${interactables.length} NPCs, ${spawnedItemCount} items spawned`);

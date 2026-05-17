@@ -407,6 +407,7 @@ try {
         gold: hook.getGold(),
         questStatus: hook.getQuestState("edda_find_aldric")?.status,
         inventory: hook.getInventory(),
+        worldItemCount: hook.getItemWorldPositions().length,
       };
     });
     if (preReload.questStatus !== "complete") {
@@ -435,6 +436,7 @@ try {
         gold: hook.getGold(),
         questStatus: hook.getQuestState("edda_find_aldric")?.status,
         inventory: hook.getInventory(),
+        worldItemCount: hook.getItemWorldPositions().length,
       };
     });
     if (restored.questStatus !== "complete") {
@@ -449,6 +451,18 @@ try {
       throw new Error(
         `post-reload inventory mismatch for ${expectedStack.item_id}: ` +
           `expected ${expectedStack.count}, got ${JSON.stringify(restoredStack)}`,
+      );
+    }
+
+    // P6.5.1 — picked items must NOT respawn on reload. Pre-reload the
+    // pickup test consumed exactly 1 item, so the world should have lost
+    // exactly 1 entry across the reload. Without the picked-indices
+    // persistence the same slot re-spawned + got auto-collected, doubling
+    // the inventory stack (the original regression that caught this).
+    if (restored.worldItemCount !== preReload.worldItemCount) {
+      throw new Error(
+        `post-reload world-item count expected ${preReload.worldItemCount} (no respawn), ` +
+          `got ${restored.worldItemCount} — picked-indices persistence broken?`,
       );
     }
 

@@ -13,8 +13,11 @@ import {
 } from "./quests";
 import {
   getInventory,
+  getPickedIndices,
   restoreInventory,
+  restorePickedIndices,
   subscribeInventory,
+  subscribePicked,
   type InventoryStack,
 } from "./inventory";
 
@@ -30,6 +33,9 @@ export interface SaveV1 {
   quests: Record<string, QuestState>;
   inventory: InventoryStack[];
   gold: number;
+  // P6.5.1 — additive field; older saves without it default to [] in
+  // applySave so they keep loading, then resave with the field populated.
+  picked_item_indices: number[];
   saved_at: number;
 }
 
@@ -48,6 +54,7 @@ let debounceTimer: number | null = null;
 let interval: number | null = null;
 let unsubQuests: (() => void) | null = null;
 let unsubInv: (() => void) | null = null;
+let unsubPicked: (() => void) | null = null;
 
 export function loadSave(): SaveV1 | null {
   if (typeof localStorage === "undefined") return null;
@@ -88,6 +95,10 @@ export function applySave(save: SaveV1, target: SaveTarget): void {
   }
   restoreQuestsState(questsRecord, save.gold ?? 0);
   restoreInventory(save.inventory ?? []);
+  // P6.5.1 — must run BEFORE main.ts spawns world items so the spawn loop
+  // can skip the picked slots. main.ts already calls applySave between
+  // player ctor and world-item spawn, so the ordering already holds.
+  restorePickedIndices(save.picked_item_indices ?? []);
 }
 
 function buildSnapshot(): SaveV1 {
@@ -102,6 +113,7 @@ function buildSnapshot(): SaveV1 {
     quests,
     inventory: getInventory(),
     gold: getGold(),
+    picked_item_indices: getPickedIndices(),
     saved_at: Date.now(),
   };
 }
@@ -136,8 +148,13 @@ export function bindAutoSave(src: SaveSource): void {
   source = src;
   unsubQuests?.();
   unsubInv?.();
+  unsubPicked?.();
   unsubQuests = subscribeQuests(scheduleSave);
   unsubInv = subscribeInventory(scheduleSave);
+  // Defensive: pickup callback in main.ts already calls addItem (which fires
+  // an inventory event), but subscribe to picks directly so a future
+  // pickup-without-addItem path can't slip past the save.
+  unsubPicked = subscribePicked(scheduleSave);
   if (interval !== null) window.clearInterval(interval);
   interval = window.setInterval(writeNow, INTERVAL_MS);
 }

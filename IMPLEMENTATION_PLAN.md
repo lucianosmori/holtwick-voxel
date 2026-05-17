@@ -204,7 +204,7 @@ the priority order.
   `clearSave()` so the chromium profile stays clean for re-runs. Build
   green at 497.16 kB.)
 
-- [ ] **P6.5.1** **REGRESSION FIX (highest priority — pick before P6.6).**
+- [x] ~~**P6.5.1** **REGRESSION FIX (highest priority — pick before P6.6).**
   P6.5 save/load shipped a double-pickup bug: after `flushSave + reload`, an
   item that was picked up pre-save respawns in the world AND the player
   position is restored adjacent to it, so the auto-pickup loop fires
@@ -255,7 +255,25 @@ the priority order.
 
   **Why not just delete the picked item from `itemSpawns` permanently:**
   because `itemSpawns` is recomputed from seed on every page load — we
-  can't mutate it across sessions. Indices are the stable handle.
+  can't mutate it across sessions. Indices are the stable handle.~~ (iter 28
+  — `inventory.ts` adds `pickedIndices: Set<number>` + `markPicked`,
+  `getPickedIndices` (sorted asc), `isPicked`, `restorePickedIndices`,
+  `subscribePicked` mirroring the existing inventory listener pattern.
+  `save.ts` `SaveV1.picked_item_indices: number[]` (additive on v1; older
+  saves default to `[]` in applySave and re-save with the field populated
+  next debounce), captured in `buildSnapshot` via `getPickedIndices`,
+  restored in `applySave` AFTER `restoreInventory` and BEFORE main.ts
+  spawns world items (ordering already held). `bindAutoSave` also
+  `subscribePicked(scheduleSave)` so a pick without an inventory delta
+  (e.g. stack-full no-op) still persists. `main.ts` switched `worldItems:
+  (WorldItem | null)[]` parallel to `itemSpawns` indexing — load loop
+  pushes `null` for `isPicked(i)` slots, pickup loop calls `markPicked(i)`
+  + nulls the slot + disposes the mesh, RAF tick + `__voxelTest__.getItemWorldPositions`
+  filter nulls. `validate-visual.mjs` post-reload sub-check: snapshot
+  pre-reload world-item count + post-reload count, assert they match
+  (regression would be `pre - 1` becomes `pre` again after respawn). Build
+  green 497.71 kB. CI gate's existing P6.5 inventory-count assertion will
+  no longer trip on health_potion 1→2.)
 
 - [ ] **P6.6** Second quest: Finn the Smith → collect 3 iron ore. Files:
   extend `src/data/quest.schema.ts` `trigger` union to add
