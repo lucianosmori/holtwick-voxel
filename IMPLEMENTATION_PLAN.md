@@ -440,26 +440,25 @@ the priority order.
   number > 0, then presses Backquote again to confirm the toggle-off path.
   Build green 508.43 kB (+0.77 kB vs iter 33's 507.66 kB).
 
-- [ ] **P6.12** README v1 + showcase screenshots. Files: `README.md`,
-  `scripts/capture-showcase.mjs` (new), `artifacts/screenshots/`.
-
-  **Update README:**
-  - Status table: tick everything P6.1 through P6.11
-  - New `## Gameplay` section: quests, inventory, save/load mechanics
-    briefly explained
-  - New `## Screenshots` section linking 4 PNGs:
-    `artifacts/screenshots/showcase-village-day.png`,
-    `showcase-dialog.png`, `showcase-inventory.png`,
-    `showcase-night-lanterns.png` — produced via a new
-    `scripts/capture-showcase.mjs` that boots vite preview + visits
-    `?test=1` + `?test=1&dayNight=0.85` + drives the dialog + the
-    inventory modal, capturing each scene to a named file.
-
-  **Do NOT flip `status.json` to graduated yet.** Graduation moved to
-  **P8.8** so the loop keeps mining P7 + P8 work this burn.
-
-  **Done when:** README has the gameplay section, 4 named showcase
-  PNGs exist in `artifacts/screenshots/`, capture script is committed.
+- [x] ~~**P6.12** README v1 + showcase screenshots.~~ (iter 35 —
+  `scripts/capture-showcase.mjs` boots its own `vite preview` on :4175
+  and captures 4 named PNGs under `artifacts/screenshots/`:
+  `showcase-village-day.png` (`?test=1&dayNight=0`, boot + screenshot),
+  `showcase-dialog.png` (open Edda via `__voxelTest__.openDialog("edda")`,
+  send "Tell me about Holtwick.", wait for the streamed assistant reply
+  bubble), `showcase-inventory.png` (seed `gold_coin x12 + health_potion
+  x3 + iron_ore x5` via `__voxelTest__.addItem`, press `KeyI`, wait for
+  `#inventory-backdrop.show`), `showcase-night-lanterns.png`
+  (`?test=1&dayNight=0.5` locks midnight so the 4 PointLights ramp to
+  full intensity against the cool moonlit hemisphere). Each scene gets
+  its own page+navigation so the URL override applies cleanly. README
+  rewritten: status table ticks P6.1–P6.11, new `## Gameplay` section
+  covers movement, talk, quests, inventory, save/load, day/night, audio,
+  debug overlay, new `## Screenshots` section renders the 4 PNGs in a
+  2×2 grid with captions, Stack section updated to reflect 64×3 grid +
+  audio + persistence + the full validation footprint. Build green
+  508.43 kB. Per plan: `status.json` stays at `exploring` — graduation
+  flip deferred to P8.8.)
 
 ## Priority 7 — Overnight burn (continued): content + polish layer
 

@@ -1,10 +1,10 @@
 {
     "updated_at":  "2026-05-17",
-    "iteration":  34,
+    "iteration":  35,
     "started_at":  "2026-05-12T00:00:00Z",
     "experiment":  "holtwick-voxel",
     "consecutive_no_progress":  0,
     "last_error":  null,
     "status":  "exploring",
-    "last_outcome":  "P6.11 done — FPS overlay (backtick toggle). `index.html` adds `#fps-overlay` (bottom-right, monospace, hidden by default, `.show` flips display, `pointer-events:none`). `src/ui/hud.ts` exports `setFpsOverlayText/setFpsOverlayVisible/isFpsOverlayVisible`. `src/main.ts` runs a rolling 60-frame `Float32Array` of `dt` values + a `fpsRenderCounter`; every 10 frames (when visible) writes `${fps}fps · ${draw} draw · ${ms}ms` with `fps = round(1/avgDt)`, `draw = renderer.info.render.calls` (snapshotted post-render), `ms = (avgDt*1000).toFixed(1)`. Backtick keydown (`e.code === \"Backquote\"`) toggles visibility, gated by local `isEditableTarget` + `e.repeat` guard so holding doesn't strobe. Sampler runs every frame even while hidden so window stays warm. `scripts/validate-visual.mjs` P6.11 block asserts hidden at boot, presses Backquote, waits ≤2s for `#fps-overlay.show` AND text matching `^(\\d+)fps` with N>0, presses Backquote again to confirm toggle-off. Build green 508.43 kB (+0.77 kB vs iter 33). Next: P6.12 README v1 + showcase screenshot capture script."
+    "last_outcome":  "P6.12 done — README v1 + showcase capture. `scripts/capture-showcase.mjs` boots its own `vite preview` on :4175 and captures 4 named PNGs under `artifacts/screenshots/`: `showcase-village-day.png` (`?test=1&dayNight=0`), `showcase-dialog.png` (open Edda via `__voxelTest__.openDialog(\"edda\")`, send a message, wait for the streamed assistant reply), `showcase-inventory.png` (seed `gold_coin x12 + health_potion x3 + iron_ore x5`, press `KeyI`, wait for `#inventory-backdrop.show`), `showcase-night-lanterns.png` (`?test=1&dayNight=0.5` locks midnight so the 4 PointLights ramp full). Each scene reloads with its own URL params. README rewritten: status table ticks P6.1-P6.11, new `## Gameplay` section (move/talk/quests/inventory/save/day-night/audio/debug), new `## Screenshots` 2×2 grid with captions, Stack updated to 64×3 grid + audio + persistence + full validation footprint. Build green 508.43 kB; status.json stays `exploring` per plan — graduation flip is P8.8. Next: P7.1 (more buildings: blacksmith forge + village well + 2 market stalls)."
 }
