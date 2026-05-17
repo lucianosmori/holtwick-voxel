@@ -66,8 +66,10 @@ The loop.ps1 wrapping you waits for that CI check via `gh run watch`
 and halts the burn if the check fails, so visual regressions still gate
 forward progress — they just gate it from the cloud.
 
-Push after each commit (repo is public, content is ungated —
-`feedback_always_push.md`).
+Do NOT attempt `git push` — claude `-p` auto-mode classifies pushes to
+main as needing user approval, so the push will block + halt the iter.
+The loop.ps1 wrapping you handles the push itself after you commit and
+return zero. Just commit cleanly and exit; the loop takes it from there.
 
 ## Working rules
 

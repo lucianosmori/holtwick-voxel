@@ -62,7 +62,7 @@ for ($i = 1; $i -le $MaxIter; $i++) {
     }
 
     Write-Host "=== iter $i/$MaxIter ==="
-    & claude -p "Run one iteration per PROMPT.md. Pick exactly one task from IMPLEMENTATION_PLAN.md - highest priority unfinished item that is NOT annotated with BLOCKED or DEFERRED. Skip BLOCKED/DEFERRED tasks entirely until the user clears the blocker. Complete the picked task, update files, commit on green. Green LOCAL means: npm run build passes (tsc --noEmit + vite build) - run it before committing and abort the iter if it fails. Do NOT run npm run validate:visual or npm run test:dialog locally - those have moved to GitHub Actions (.github/workflows/visual-validation.yml) and run automatically on every push to spare the user's machine from Playwright. Push to origin after the commit so the visual-validation workflow + GH Pages deploy both fire."
+    & claude -p "Run one iteration per PROMPT.md. Pick exactly one task from IMPLEMENTATION_PLAN.md - highest priority unfinished item that is NOT annotated with BLOCKED or DEFERRED. Skip BLOCKED/DEFERRED tasks entirely until the user clears the blocker. Complete the picked task, update files, commit on green. Green LOCAL means: npm run build passes (tsc --noEmit + vite build) - run it before committing and abort the iter if it fails. Do NOT run npm run validate:visual or npm run test:dialog locally - those have moved to GitHub Actions (.github/workflows/visual-validation.yml) and run automatically on every push to spare the user's machine from Playwright. Do NOT attempt to push - auto-mode blocks pushes to main. The loop.ps1 wrapping you handles the push and waits for the CI gate after your iter returns. Just commit cleanly and exit zero on success."
     if ($LASTEXITCODE -ne 0) {
         Send-Ping "iter $i FAILED - see terminal"
         exit 1
@@ -79,6 +79,24 @@ for ($i = 1; $i -le $MaxIter; $i++) {
     & npm run build
     if ($LASTEXITCODE -ne 0) {
         Send-Ping "iter $i build FAILED after commit - halting"
+        exit 1
+    }
+
+    # Push from the loop, NOT from ralph. Claude in -p (non-interactive auto)
+    # mode classifies `git push origin main` as needing explicit user approval,
+    # so ralph commits locally then asks for permission and can never push by
+    # itself. The loop has full shell rights, so push happens here. If there's
+    # no new local commit (ralph aborted the iter cleanly without committing),
+    # we skip the push + the GH wait and call the iter a no-op.
+    $localAhead = (git rev-list --count "origin/main..HEAD" 2>$null).Trim()
+    if ($localAhead -eq "0") {
+        Write-Host "=== iter $i produced no commit (skip push + CI wait) ==="
+        continue
+    }
+    Write-Host "=== iter $i pushing $localAhead commit(s) to origin ==="
+    & git push origin main
+    if ($LASTEXITCODE -ne 0) {
+        Send-Ping "iter $i git push FAILED - halting"
         exit 1
     }
 
