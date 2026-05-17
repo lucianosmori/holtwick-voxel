@@ -950,6 +950,83 @@ try {
     failed = true;
   }
 
+  // P7.6 well_visit quest: open dialog with Hilda (the well-keeper), assert
+  // accept-row visible, accept the quest, close, re-open dialog — the second
+  // open should auto-complete the talk_to quest (giver and target are both
+  // Hilda) and bump gold by +5.
+  try {
+    const goldBefore = await page.evaluate(() =>
+      (window).__voxelTest__.getGold(),
+    );
+    await page.evaluate(() => (window).__voxelTest__.openDialog("hilda"));
+    await page.waitForFunction(
+      () => document.querySelector("#dialog-backdrop")?.classList.contains("show"),
+      { timeout: 3000 },
+    );
+    const acceptVisible = await page.evaluate(() => {
+      const row = document.querySelector("#dialog-quest-row");
+      const title = document.querySelector("#dialog-quest-title")?.textContent ?? "";
+      return { shown: !!row && row.classList.contains("show"), title };
+    });
+    if (!acceptVisible.shown) {
+      throw new Error("Hilda dialog did not show accept-quest row for well_visit");
+    }
+    if (!acceptVisible.title.toLowerCase().includes("well")) {
+      throw new Error(`expected Hilda's quest title to mention "well", got "${acceptVisible.title}"`);
+    }
+    await page.evaluate(() =>
+      document.querySelector("#dialog-quest-accept").click(),
+    );
+    const afterAccept = await page.evaluate(() =>
+      (window).__voxelTest__.getQuestState("well_visit"),
+    );
+    if (afterAccept?.status !== "in_progress") {
+      throw new Error(
+        `well_visit should be in_progress after accept, got ${JSON.stringify(afterAccept)}`,
+      );
+    }
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !document.querySelector("#dialog-backdrop.show"),
+      { timeout: 3000 },
+    );
+    await page.evaluate(() => (window).__voxelTest__.openDialog("hilda"));
+    await page.waitForFunction(
+      () => document.querySelector("#dialog-backdrop")?.classList.contains("show"),
+      { timeout: 3000 },
+    );
+    const afterTalk = await page.evaluate(() =>
+      (window).__voxelTest__.getQuestState("well_visit"),
+    );
+    if (afterTalk?.status !== "complete") {
+      throw new Error(
+        `well_visit should auto-complete on re-talk, got ${JSON.stringify(afterTalk)}`,
+      );
+    }
+    const goldAfter = await page.evaluate(() =>
+      (window).__voxelTest__.getGold(),
+    );
+    if (goldAfter !== goldBefore + 5) {
+      throw new Error(
+        `gold expected ${goldBefore + 5} (was ${goldBefore} +5 reward), got ${goldAfter}`,
+      );
+    }
+    const wellShot = `artifacts/screenshots/iter-${ITER}-well.png`;
+    await page.screenshot({ path: wellShot, fullPage: true });
+    console.log(`[validate:visual] well screenshot -> ${wellShot}`);
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => !document.querySelector("#dialog-backdrop.show"),
+      { timeout: 3000 },
+    );
+    console.log(
+      `[validate:visual] P7.6 well_visit OK (hilda accept → re-talk → complete, gold ${goldBefore} → ${goldAfter})`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] well_visit quest assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);

@@ -556,15 +556,26 @@ mechanics that need design decisions overnight.
 
 - [x] **P7.5** Animated NPC idle barks (proximity-triggered). DONE iter 40.
 
-- [ ] **P7.6** Quest 3 — "Visit the well" (talk-to type). Files:
-  add to `src/data/quests.ts`, giver = well-keeper NPC from P7.2.
-  `id: "well_visit"`, trigger `talk_to` well-keeper from inside a
-  3-cell radius of well center, reward 5 gold.
-
-  Demonstrates that any NPC can be a quest-giver, not just Edda.
-
-  **Done when:** Playwright accepts quest from well-keeper, then
-  re-opens dialog, asserts auto-completion + 5 gold awarded.
+- [x] ~~**P7.6** Quest 3 — "Visit the well" (talk-to type).~~ (iter 41
+  — `src/data/quests.ts` gains `well_visit` entry: giver `hilda` (the
+  Well-Keeper from P7.2, already spawned at (46,28) two cells north of
+  the well centre at (46,30) — well within the "3-cell radius" trigger
+  ring described in the plan), `trigger: { type: "talk_to", npc_id:
+  "hilda" }`, `reward: { gold: 5 }`. Wiring is zero — the existing
+  `questsGivenBy(npc.id)` in `dialog.ts` renders the accept-row for any
+  NPC who hands out a quest, and `onTalkTo(npc.id)` already auto-
+  completes a `talk_to` whose target matches the dialog NPC, so the
+  giver-and-target-are-the-same-NPC pattern Just Works: first open
+  shows the accept row (not_started → can't auto-complete), accept
+  flips to in_progress, close + re-open and `onTalkTo` finds the
+  in_progress talk_to quest with matching npc_id → completes + awards
+  5 gold. `validate-visual.mjs` P7.6 block: snapshots `goldBefore`,
+  `openDialog("hilda")` and asserts `#dialog-quest-row.show` with a
+  title containing "well", clicks `#dialog-quest-accept`, asserts
+  state=in_progress, presses Escape, re-opens Hilda's dialog, asserts
+  state=complete and gold === goldBefore + 5, captures
+  `iter-${ITER}-well.png`. Build green 520.08 kB (+0.24 kB vs iter 40's
+  519.84 kB).
 
 - [ ] **P7.7** Quest 4 — "Collect 5 gold coins" (collect type).
   Files: add to `src/data/quests.ts`, giver = Bren the bard,

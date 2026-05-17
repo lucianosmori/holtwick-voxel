@@ -22,6 +22,15 @@ export const QUESTS: QuestDef[] = [
     trigger: { type: "collect", item_id: "iron_ore", count: 3 },
     reward: { gold: 25 },
   },
+  {
+    id: "well_visit",
+    giver_npc_id: "hilda",
+    title: "Visit the Well",
+    description:
+      "Hilda asks you to stop by the well and pay your respects to the water. Come back when you've taken a look.",
+    trigger: { type: "talk_to", npc_id: "hilda" },
+    reward: { gold: 5 },
+  },
 ];
 
 export function questById(id: string): QuestDef | undefined {
