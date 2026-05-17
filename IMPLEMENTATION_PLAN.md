@@ -575,8 +575,8 @@ mechanics that need design decisions overnight.
   via `__voxelTest__.addItem`, opens dialog, asserts quest completion
   + 1 health_potion in inventory.
 
-- [ ] **P7.8** README v2 + GRADUATION FLIP. Files: `README.md`,
-  `status.json`.
+- [ ] **P7.8** README v2 (no graduation flip — moved to **P9.6**).
+  Files: `README.md`.
 
   **Update README:**
   - Status table fully ticked (everything through P7.7)
@@ -586,18 +586,16 @@ mechanics that need design decisions overnight.
   - Recap of quest count + item count + building count
   - Link to live demo + screenshot gallery
 
-  **Flip `status.json` to `"status": "graduated"`** — this halts the
-  loop per the abandon/graduation signal.
+  **Do NOT flip `status.json` to `graduated`** — graduation moved to
+  P9.6 so loop continues into P8 + P9 voxel polish layer.
 
-  **Done when:** status.json reflects graduated AND the README has
-  the full controls + roster sections. On the next iter check, loop
-  exits cleanly.
+  **Done when:** README has the full controls + roster sections.
 
 ## Priority 8 — Extra overshoot (only mined if P6 + P7 land early)
 
 Stack-locked 2026-05-16. Pure content/visual/HUD additions, zero new
-mechanics. Each safe to skip — none are graduation-blocking. If ralph
-finishes P7.8 (graduation), the loop stops and P8 stays unmined.
+mechanics. Loop continues past P8 into P9 voxel polish, then graduates
+at P9.6.
 
 - [ ] **P8.1** Decorative props: barrels + crates instanced near
   buildings. Files: `src/world/props.ts` (new), instanced cubes
@@ -689,6 +687,148 @@ finishes P7.8 (graduation), the loop stops and P8 stays unmined.
 
   **Done when:** Playwright presses `?`, asserts modal visible with
   ≥6 keybind entries.
+
+## Priority 9 — Voxel polish layer (stack-locked 2026-05-17)
+
+Surface gaps in the voxel/world domain the user spotted after the P6+P7
+gameplay+content layers landed. Each item is locked-design, low/medium
+risk, mined ONLY after P8.8 lands (loop continues past P8 because P7.8
+no longer flips graduation). Final task **P9.6** flips status to
+`graduated`.
+
+- [ ] **P9.1** Tavern interior dressing — bar counter + 2 tables +
+  4 stools + 1 hearth. Files: `src/world/tavernInterior.ts` (new),
+  called from `src/world/village.ts` after `addTavern`.
+
+  **Layout** (tavern interior is the 6×4 plank floor at y=0 from
+  `addTavern(originX=28, originZ=14)`, so interior cells run
+  x=29..33, z=15..17):
+  - **Bar counter**: 3 `VOXEL_PLANKS` cubes at y=1 along the north
+    wall, cells (29,15), (30,15), (31,15)
+  - **Hearth**: 2 `VOXEL_STONE` cubes at y=1 in the NW corner, cells
+    (32,15), (33,15) — plus 1 `PointLight(0xff8030, 0.9, 4)` at world
+    pos (gridOffset.x+32.5+0.5, 1.5, gridOffset.z+15.5+0.5) added
+    to scene
+  - **2 tables**: single `VOXEL_PLANKS` cubes at y=1, cells (30,17)
+    and (32,17)
+  - **4 stools**: single `VOXEL_DIRT` cubes at y=1, cells (29,17),
+    (31,17), (31,17), (33,17) — adjacent to the tables
+
+  Skip stamping if cell is already occupied (defensive — addTavern
+  shouldn't have planted anything in the interior, but be safe).
+
+  **Done when:** Playwright loads with the player warped near tavern
+  doorway via `__voxelTest__.movePlayerTo(...)`, takes a screenshot;
+  the pixel-content bin count rises by >30 vs. baseline (more variety
+  inside the tavern voxel space). Also asserts `scene.children` count
+  includes 1 more `PointLight` than baseline.
+
+- [ ] **P9.2** Voxel ambient occlusion — vertex-color darken at
+  block corners with 2+ solid neighbors (classic Minecraft AO).
+  Files: `src/render/voxelMesh.ts` modify the per-instance build to
+  emit per-vertex color attribute, computed by sampling 3 neighbor
+  cells per corner (the 2 face-adjacent + 1 diagonal). Each "solid
+  neighbor" contributes a 0.25 darken factor (clamped to 0.5 min).
+
+  **Implementation:** instead of one `MeshStandardMaterial` per voxel
+  type, switch to a single `THREE.BufferGeometry` per type with
+  vertex colors enabled (`vertexColors: true` on the material). Build
+  the geometry in `voxelMesh.ts` as a quad-per-face mesh (not a
+  shared BoxGeometry instance) so per-corner AO can be baked in.
+  This is a significant refactor — keep the public API of
+  `buildVoxelMesh(grid, palette?)` returning a `THREE.Group` so
+  callers don't change.
+
+  **Done when:** Playwright screenshot shows visible darkening at
+  tavern wall corners (cells adjacent to plank-wall corner voxels
+  should pixel-bin into a darker bucket than the wall's main color).
+  Pixel-content top-bin should DROP further (more color variety
+  from AO gradients). Build size should not grow more than 10%
+  (refactored geometry is roughly equivalent in vertex count).
+
+- [ ] **P9.3** Multi-Y terrain — 3 elevated mini-hills around the
+  village outskirts, each a 5×5 cell area raised by 1 voxel (so
+  ground at y=0 for the 5×5 footprint becomes `VOXEL_DIRT` capped
+  by a `VOXEL_FLOOR` grass cell at y=1, and the y=0 cell becomes
+  `VOXEL_DIRT` to look like the slope's substrate).
+
+  Files: `src/world/village.ts` add `addHills(grid, seed)` after
+  `computeItemSpawns` (so item spawn list is computed against the
+  flat ground; items don't end up perched on hills); `src/entities/player.ts`
+  collision needs an auto-step-up rule: if the cell the player is
+  trying to enter has a solid voxel at y=1 BUT y=2 is empty AND
+  the cell is exactly 1 voxel taller than current player floor,
+  ALLOW the move and set player Y to top-of-block + PLAYER_HALF.
+  Falling back down works the same in reverse (no gravity yet —
+  just snap to top of the cell when leaving a hill).
+
+  **Hill placement:** 3 hills via Mulberry32 seed=villageSeed+9001.
+  Reject if center cell is within 5 of plaza, within 3 of any road,
+  within 3 of tavern footprint, or within 4 of a tree.
+
+  **Done when:** Playwright screenshot shows visible elevation
+  (additional shadow contour); `__voxelTest__.movePlayerTo(<hill
+  center>)` followed by reading `__voxelTest__.getPlayerY()` returns
+  a Y > baseline ground Y. Player can still walk all original paths
+  (regression check: walk to Aldric still completes).
+
+- [ ] **P9.4** Indoor lighting at night — 2 candle PointLights inside
+  tavern (above bar, above table-area), plus the hearth PointLight
+  from P9.1 should be visible. Files: `src/render/indoorLights.ts`
+  (new), called from `src/main.ts`.
+
+  **Candles**: each `PointLight(0xffdc70, 0.6, 3)` at world pos
+  derived from cells (30, 16, y=2.5) and (32, 17, y=2.5).
+  Hearth from P9.1 stays separate.
+
+  **Intensity ramp:** all 3 indoor lights are CONSTANT (always
+  lit, no day/night ramp) — the tavern interior is always lit
+  regardless of time of day. This contrasts with P6.10 outdoor
+  lanterns that ramp by `dayNight.phase`.
+
+  **Done when:** Playwright loads `?dayNight=0.85` (full night),
+  takes a screenshot, asserts a warm-tinted pixel cluster
+  (rgb~255,180,80 range) exists within the tavern interior screen
+  region. AND a daytime screenshot still shows the interior is
+  not blown out (constant lights should be subtle against sunlight).
+
+- [ ] **P9.5** Stars at night — paint 80 white pinprick points on
+  the top sky face when `dayNight.phase > 0.7`. Files: extend
+  `src/render/sky.ts`.
+
+  **Implementation:** the existing procedural sky is built from
+  six 256² canvas faces. Modify `makeFaceCanvas` for the top face
+  (`Face.Top`) to accept a `nightAlpha: number` parameter. Paint
+  stars only when nightAlpha > 0. Stars are 80 white 1-2px dots at
+  fixed seeded positions (mulberry32 seed=42), alpha = nightAlpha.
+
+  **Driving the update:** `DayNight.update()` already runs per
+  frame. Subscribe to phase changes; when phase crosses 0.7 or 0.95,
+  rebuild the top face canvas with appropriate nightAlpha. Cheap
+  (~5ms per rebuild, fires twice per cycle).
+
+  **Done when:** Playwright loads `?dayNight=0.85`, screenshot
+  shows >50 distinct white pixels in the top portion of the canvas.
+  Daytime screenshot at `?dayNight=0.25` shows zero white pixels
+  in the same region.
+
+- [ ] **P9.6** GRADUATION FLIP + final README pass. Files:
+  `status.json`, `README.md`.
+
+  **Update README:**
+  - Add P9 items to the status table (tavern interior, AO, hills,
+    indoor lighting, stars)
+  - Bump description if any new mechanics changed (hills means
+    "walkable elevation" is now a feature)
+  - Final screenshot regeneration via
+    `node scripts/capture-showcase.mjs`
+
+  **Flip `status.json` to `"status": "graduated"`** — halts the
+  loop per the abandon/graduation signal.
+
+  **Done when:** status.json reflects graduated AND README is
+  current. On the next iter check, loop exits cleanly. This is
+  the final task for the overnight burn.
 
 ## Done (struck through, kept for audit)
 
