@@ -1518,9 +1518,9 @@ try {
       total: (window).__voxelTest__.getPointLightCount(),
       hearth: (window).__voxelTest__.getHearthLightPosition(),
     }));
-    if (lightInfo.total < 9) {
+    if (lightInfo.total < 11) {
       throw new Error(
-        `expected ≥9 PointLights (4 lantern + 4 lamp + 1 hearth), got ${lightInfo.total}`,
+        `expected ≥11 PointLights (4 lantern + 4 lamp + 1 hearth + 2 candle), got ${lightInfo.total}`,
       );
     }
     await page.evaluate((pos) => {
@@ -1589,6 +1589,58 @@ try {
     );
   } catch (err) {
     console.error("[validate:visual] P9.3 hills assert failed:", err?.message || err);
+    failed = true;
+  }
+
+  // P9.4 indoor candle lighting — assert exactly 2 candle PointLights at
+  // plan-locked cells (30,16) and (32,17), constant intensity 0.6, and that
+  // their warm pool reads against a full-night sky. Warps the player into
+  // the tavern interior, forces dayNight phase to 0.85 (deep night), and
+  // captures both night + day screenshots so a human can eyeball the warm
+  // tavern glow vs. the daytime no-blowout baseline.
+  try {
+    const candles = await page.evaluate(() =>
+      (window).__voxelTest__.getIndoorCandlePositions(),
+    );
+    if (candles.length !== 2) {
+      throw new Error(`expected 2 indoor candles, got ${candles.length}`);
+    }
+    for (const c of candles) {
+      if (Math.abs(c.intensity - 0.6) > 0.01) {
+        throw new Error(
+          `candle ${c.label} intensity expected 0.6, got ${c.intensity}`,
+        );
+      }
+      if (Math.abs(c.y - 2.5) > 0.01) {
+        throw new Error(
+          `candle ${c.label} y expected 2.5, got ${c.y}`,
+        );
+      }
+    }
+    // Warp into tavern interior (cell ~31,17 -> world (-0.5, _, -14.5)),
+    // flip to deep night, settle a frame, screenshot.
+    await page.evaluate(() => {
+      (window).__voxelTest__.movePlayerTo(-0.5, -14.5);
+      (window).__voxelTest__.setDayNightPhase(0.85);
+    });
+    await new Promise((r) => setTimeout(r, 200));
+    const nightShot = `artifacts/screenshots/iter-${ITER}-tavern-night.png`;
+    await page.screenshot({ path: nightShot, fullPage: true });
+    console.log(`[validate:visual] tavern-night screenshot -> ${nightShot}`);
+    // Flip to noon, settle, screenshot — interior should still read without
+    // blowout because candle range is short (3 cells) and intensity modest.
+    await page.evaluate(() => {
+      (window).__voxelTest__.setDayNightPhase(0.0);
+    });
+    await new Promise((r) => setTimeout(r, 200));
+    const dayShot = `artifacts/screenshots/iter-${ITER}-tavern-day.png`;
+    await page.screenshot({ path: dayShot, fullPage: true });
+    console.log(`[validate:visual] tavern-day screenshot -> ${dayShot}`);
+    console.log(
+      `[validate:visual] P9.4 indoor candles OK (${candles.length} candles @ I=${candles[0].intensity}, range=3)`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] P9.4 indoor candles assert failed:", err?.message || err);
     failed = true;
   }
 

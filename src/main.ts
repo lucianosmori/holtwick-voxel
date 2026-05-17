@@ -51,6 +51,7 @@ import { mountMinimap } from "./ui/minimap";
 import { bindSettings } from "./ui/settings";
 import { buildLampPosts, buildTavernSign, updateLampPosts } from "./world/decorations";
 import { buildHearthLight } from "./world/tavernInterior";
+import { buildIndoorCandles } from "./render/indoorLights";
 
 bindTitle();
 mountHud();
@@ -236,6 +237,12 @@ updateLampPosts(lampPosts, dayNight.currentPhase);
 const hearthLight = buildHearthLight(gridOffset);
 scene.add(hearthLight);
 
+// P9.4 — two constant-intensity candle PointLights inside the tavern
+// (bar + table cluster). Always lit regardless of day/night phase so the
+// interior stays readable; complements the hearth set up just above.
+const indoorCandles = buildIndoorCandles(gridOffset);
+for (const c of indoorCandles) scene.add(c.light);
+
 // P8.4 chimney smoke + water bob. Smoke base = tavern roof centre in world
 // coords ((32, 5, 17) in grid) lifted onto worldMesh's gridOffset; emitter
 // recycles 16 sprites on a 4s lifecycle. Water animator binds to the
@@ -380,6 +387,7 @@ if (isTestRun) {
     triggerOnTalkTo: (npcId: string) => void;
     getPointLightCount: () => number;
     getHearthLightPosition: () => { x: number; y: number; z: number };
+    getIndoorCandlePositions: () => Array<{ label: string; x: number; y: number; z: number; intensity: number }>;
     getPlayerY: () => number;
     getHillCount: () => number;
     getHillPositions: () => Array<{ cellX: number; cellZ: number; worldX: number; worldZ: number }>;
@@ -485,6 +493,14 @@ if (isTestRun) {
       y: hearthLight.position.y,
       z: hearthLight.position.z,
     }),
+    getIndoorCandlePositions: () =>
+      indoorCandles.map((c) => ({
+        label: c.label,
+        x: c.light.position.x,
+        y: c.light.position.y,
+        z: c.light.position.z,
+        intensity: c.light.intensity,
+      })),
     getPlayerY: () => player.mesh.position.y,
     getHillCount: () => hills.length,
     getHillPositions: () =>

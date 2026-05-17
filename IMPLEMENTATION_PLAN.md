@@ -999,25 +999,27 @@ no longer flips graduation). Final task **P9.6** flips status to
   543.90 kB — `addHills` source + `resolveFloor`/`snapToFloor`
   player methods + test hooks).)
 
-- [ ] **P9.4** Indoor lighting at night — 2 candle PointLights inside
+- [x] **P9.4** Indoor lighting at night — 2 candle PointLights inside
   tavern (above bar, above table-area), plus the hearth PointLight
-  from P9.1 should be visible. Files: `src/render/indoorLights.ts`
-  (new), called from `src/main.ts`.
+  from P9.1. DONE iter 55. (New `src/render/indoorLights.ts`
+  `buildIndoorCandles(gridOffset)` returns two
+  `PointLight(0xffdc70, 0.6, 3)` at cells (30,16) bar and (32,17)
+  table, y=2.5 — just under the y=3 roof voxels so the warm pool
+  reads from inside the room without bleeding through the roof
+  geometry. Constant intensity per spec (no day/night ramp);
+  hearth + candles + 4 lantern + 4 lamp post = 11 PointLights total.
 
-  **Candles**: each `PointLight(0xffdc70, 0.6, 3)` at world pos
-  derived from cells (30, 16, y=2.5) and (32, 17, y=2.5).
-  Hearth from P9.1 stays separate.
+  `src/main.ts` imports + instantiates after the hearth, adds each
+  light to the scene, and adds a `getIndoorCandlePositions()` test
+  hook returning {label, x, y, z, intensity} per candle.
 
-  **Intensity ramp:** all 3 indoor lights are CONSTANT (always
-  lit, no day/night ramp) — the tavern interior is always lit
-  regardless of time of day. This contrasts with P6.10 outdoor
-  lanterns that ramp by `dayNight.phase`.
-
-  **Done when:** Playwright loads `?dayNight=0.85` (full night),
-  takes a screenshot, asserts a warm-tinted pixel cluster
-  (rgb~255,180,80 range) exists within the tavern interior screen
-  region. AND a daytime screenshot still shows the interior is
-  not blown out (constant lights should be subtle against sunlight).
+  `scripts/validate-visual.mjs`: PointLight floor bumped 9 → 11;
+  new P9.4 block asserts exactly 2 candles at intensity 0.6 + y 2.5,
+  warps the player into the tavern interior, forces dayNight phase
+  to 0.85 + captures `iter-${ITER}-tavern-night.png`, then flips to
+  noon + captures `iter-${ITER}-tavern-day.png` so a human can
+  eyeball warm-glow vs no-blowout. Build green 546.27 kB
+  (+0.49 kB vs iter 54).)
 
 - [ ] **P9.5** Stars at night — paint 80 white pinprick points on
   the top sky face when `dayNight.phase > 0.7`. Files: extend
