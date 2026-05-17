@@ -240,6 +240,26 @@ try {
       { timeout: 3000 },
     );
     console.log("[validate:visual] P6.1 quest flow OK (edda → accept → aldric → +10 gold)");
+
+    // P6.2 HUD: gold counter + quest log must reflect the just-completed quest.
+    const hud = await page.evaluate(() => {
+      const root = document.querySelector("#hud");
+      if (!root) return { error: "no #hud in DOM" };
+      const gold = document.querySelector("#hud-gold")?.textContent?.trim() ?? "";
+      const count = document.querySelector("#hud-quest-count")?.textContent?.trim() ?? "";
+      const rows = Array.from(document.querySelectorAll("#hud-quest-list .hud-quest"))
+        .map((el) => el.textContent?.trim() ?? "");
+      const visible = window.getComputedStyle(root).display !== "none";
+      return { visible, gold, count, rows };
+    });
+    if (hud?.error) throw new Error(`HUD check: ${hud.error}`);
+    if (!hud.visible) throw new Error("HUD #hud is not visible");
+    if (hud.gold !== "Gold: 10") throw new Error(`HUD gold expected "Gold: 10", got "${hud.gold}"`);
+    if (hud.count !== "Quests (1)") throw new Error(`HUD count expected "Quests (1)", got "${hud.count}"`);
+    if (hud.rows.length !== 1 || !hud.rows[0].startsWith("[done] ") || !hud.rows[0].includes("Find Aldric")) {
+      throw new Error(`HUD row expected "[done] Find Aldric", got ${JSON.stringify(hud.rows)}`);
+    }
+    console.log(`[validate:visual] P6.2 HUD OK (${hud.gold} · ${hud.count} · "${hud.rows[0]}")`);
   } catch (err) {
     console.error("[validate:visual] quest flow assert failed:", err?.message || err);
     failed = true;

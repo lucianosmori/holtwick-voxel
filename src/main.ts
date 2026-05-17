@@ -11,9 +11,11 @@ import { NPC_SPAWNS } from "./data/npcSpawns";
 import type { NpcDef } from "./data/npc.schema";
 import { DayNight } from "./world/dayNight";
 import { bindTitle } from "./ui/title";
+import { mountHud } from "./ui/hud";
 import { acceptQuest, getGold, getQuestState, getQuests } from "./game/quests";
 
 bindTitle();
+mountHud();
 
 const { scene, camera, renderer, sun, hemi } = bootstrapScene("#game");
 const dayNight = new DayNight(sun, hemi);

@@ -1,10 +1,10 @@
 {
     "updated_at":  "2026-05-16",
-    "iteration":  23,
+    "iteration":  24,
     "started_at":  "2026-05-12T00:00:00Z",
     "experiment":  "holtwick-voxel",
     "consecutive_no_progress":  0,
     "last_error":  null,
     "status":  "exploring",
-    "last_outcome":  "P6.1 done — quest schema + first quest (Edda → Aldric → 10 gold). New `data/quest.schema.ts` + `data/quests.ts` + `game/quests.ts` (state machine, gold purse, subscribe/emit, `acceptQuest`/`completeQuest`/`onTalkTo`); `ui/dialog.ts` injects accept-row when NPC has not_started quest, auto-completes `talk_to` quests on dialog open and appends `[Quest complete: … +N gold]` chat line; `index.html` + `main.ts` updated, `__voxelTest__` extended with `openDialog(npcId?)`/`acceptQuest`/`getQuestState`/`getQuests`/`getGold`; `validate-visual.mjs` asserts the full Edda→accept→Aldric→complete + 10 gold flow with new iter-${ITER}-quest.png capture. Build + visual + test:dialog all green. Next: P6.2 HUD (quest log + gold counter)."
+    "last_outcome":  "P6.2 done — quest log HUD + gold counter. New `src/ui/hud.ts` `mountHud()` renders `#hud-gold` + `#hud-quest-count` + `#hud-quest-list` and subscribes to `subscribeQuests` so gold + quest transitions re-render without polling; quests filtered to `status !== \"not_started\"` so only accepted/completed work appears in the log. `index.html` adds `#hud` (top-right, 200px, opacity 0.85, pointer-events: none, z-index 5, monospace, dashed divider, status-tinted rows — green `[done]`, amber `[active]`) + CSS; `main.ts` calls `mountHud()` after `bindTitle()`. `scripts/validate-visual.mjs` extended: after the P6.1 Edda→Aldric flow, asserts the HUD is visible AND `Gold: 10` AND `Quests (1)` AND the row starts with `[done] ` and contains `Find Aldric`. All three gates green (build 489.84 kB main, visual top-bin 18.64% / 347 bins, test:dialog all checks pass). Next: P6.3 item schema + 3 item types + world spawn + pickup."
 }

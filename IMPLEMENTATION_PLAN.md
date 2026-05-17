@@ -123,20 +123,22 @@ the priority order.
   hook, clicks the accept button, then opens Aldric's dialog and asserts
   the quest log shows 1 complete entry + gold counter shows 10.
 
-- [ ] **P6.2** Quest log HUD + gold counter. Files: `src/ui/hud.ts` (new),
-  `index.html` add `<div id="hud">` in top-right (200px wide, opacity 0.85,
-  pointer-events: none), CSS in index.html `<style>`. HUD subscribes to
-  quest + gold + inventory state and re-renders on change. Layout:
-
-  ```
-  Gold: 10
-  ----------------
-  Quests (1)
-  [done] Find Aldric
-  ```
-
-  **Done when:** HUD always visible; after P6.1's Playwright flow, HUD
-  shows the gold count + the quest's title with `[done]` prefix.
+- [x] ~~**P6.2** Quest log HUD + gold counter.~~ (iter 24 — `src/ui/hud.ts`
+  `mountHud()` renders `#hud-gold`, `#hud-quest-count`, `#hud-quest-list`
+  and subscribes to `subscribeQuests` so gold + quest transitions re-render
+  without polling. `index.html` adds `#hud` (top-right, 200px, opacity 0.85,
+  pointer-events: none, z-index 5, monospace, dashed divider, status-tinted
+  rows — green `[done]`, amber `[active]`). Quests stay hidden from the log
+  until accepted (`not_started` filtered) so the panel reads "Quests (0)"
+  until the player engages. `main.ts` calls `mountHud()` after `bindTitle()`.
+  Inventory row is intentionally absent here — wires in with P6.3 when the
+  inventory state lands. `validate-visual.mjs` extended: after the P6.1
+  Edda→Aldric flow, asserts `#hud` is visible AND `#hud-gold === "Gold: 10"`
+  AND `#hud-quest-count === "Quests (1)"` AND the single row starts with
+  `[done] ` and contains `Find Aldric`. All three gates green (`build`
+  489.84 kB, `validate:visual` top-bin 18.64% / 347 bins, `test:dialog`
+  all checks pass). iter-24-quest.png captures the HUD in the corner with
+  the completed quest.)
 
 - [ ] **P6.3** Item schema + 3 item types + world spawn + pickup. Files:
   `src/data/item.schema.ts` (new), `src/data/items.ts` (new),
