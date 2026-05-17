@@ -612,6 +612,46 @@ try {
     failed = true;
   }
 
+  // P6.8 audio: AudioContext is gesture-gated. By this point the dialog +
+  // quest + inventory + walker blocks have dispatched many trusted keyboard
+  // events (Playwright `keyboard.press` qualifies), so the first-gesture
+  // listener in main.ts should have fired and the context should be running.
+  // We also assert the volume slider is present in the HUD.
+  try {
+    // Explicit click for belt-and-suspenders — guarantees a trusted gesture
+    // has happened even if the order of prior assertions ever changes.
+    await page.mouse.click(20, 20);
+    await page.waitForFunction(
+      () => {
+        const ctx = (window).__audioCtx;
+        return !!ctx && ctx.state === "running";
+      },
+      { timeout: 4000, polling: 100 },
+    );
+    const slider = await page.evaluate(() => {
+      const el = document.querySelector("#hud-volume");
+      if (!el) return { present: false };
+      return {
+        present: true,
+        type: el.type,
+        value: el.value,
+        min: el.min,
+        max: el.max,
+      };
+    });
+    if (!slider.present) throw new Error("#hud-volume slider missing from HUD");
+    if (slider.type !== "range") {
+      throw new Error(`#hud-volume not type=range, got ${slider.type}`);
+    }
+    const ctxState = await page.evaluate(() => (window).__audioCtx?.state);
+    console.log(
+      `[validate:visual] P6.8 audio OK (AudioContext state=${ctxState}, vol slider ${slider.min}-${slider.max} @${slider.value})`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] audio flow assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);

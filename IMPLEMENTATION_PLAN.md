@@ -317,10 +317,40 @@ the priority order.
   moved ≥0.1 voxels; captures `iter-${ITER}-walk.png`. Build green
   499.68 kB.)
 
-- [ ] **P6.8** Procedural ambient audio + footsteps via Web Audio API.
-  Files: `src/audio/ambient.ts` (new), `src/audio/footsteps.ts` (new),
-  `src/main.ts` wire on first user gesture (audio contexts require a
-  gesture to start).
+- [x] ~~**P6.8** Procedural ambient audio + footsteps via Web Audio API.~~
+  (iter 31 — `src/audio/ambient.ts` owns the shared AudioContext + master
+  GainNode + day/night chains. Day chain: 2s pink-noise buffer (Paul
+  Kellet economy filter, scaled to ~±1) looped through a 800Hz lowpass
+  (gain 0.22) + a 110Hz sine rumble (gain 0.02). Night chain: 4kHz sine
+  carrier whose amplitude is AM-modulated by an 8Hz LFO connected to a
+  GainNode `.gain` AudioParam (baseline 0.018, ±0.018 from LFO →
+  throbbing cricket, ends up below day amplitude per spec). `isNight(phase)
+  = phase ∈ [0.7, 0.95)` per spec; `updateAmbient(dt, phase)` drives each
+  chain's gain toward its target via exponential approach with τ =
+  CROSSFADE_SEC/3 so the crossfade reaches ~95% in 3s. Daytime chirps:
+  brief sine bursts 1200-2400Hz with exponential up/down envelope every
+  5-15s, only when day chain is dominant (gain > 0.3). Master gain
+  persists to `localStorage` under `holtwick-voxel:audio:volume`; default
+  0.5; `setMasterVolume(v)` clamps + writes. `startAmbient()` exposes
+  `window.__audioCtx` so the visual gate can assert state==="running".
+  `src/audio/footsteps.ts` `maybeStep(x, z)` fires when squared player
+  distance from cursor ≥ STEP_DISTANCE² (0.09); plays a 50ms white-noise
+  buffer through a 600Hz lowpass with ±10% playbackRate jitter, routed
+  through the shared master so the volume slider attenuates it too.
+  `resetFootstepCursor(x, z)` snaps the cursor on warps (save restore +
+  test `movePlayerTo`) so phantom steps don't fire. `main.ts` registers
+  one-shot `pointerdown`/`keydown`/`touchstart` listeners that call
+  `startAmbient()` — browsers block AudioContext creation/resume without
+  a trusted gesture, so we can't init at boot. Per-frame: `maybeStep(...)`
+  + `updateAmbient(dt, dayNight.currentPhase)`. `index.html` adds
+  `#hud-volume-row` (slider + label) inside `#hud`; the row sets
+  `pointer-events: auto` since the parent HUD is non-interactive. Slider
+  wired in main.ts: initial value from `getMasterVolume()`, `input` event
+  → `setMasterVolume(value/100)`. `scripts/validate-visual.mjs` P6.8
+  block: explicit `page.mouse.click(20,20)` for a guaranteed trusted
+  gesture, waits up to 4s for `window.__audioCtx.state === "running"`,
+  asserts `#hud-volume` is a `type=range` input. Build green at 503.50 kB
+  (up ~3.8 kB from 499.68 kB).)
 
   **No asset downloads.** All synthesis via Web Audio API nodes.
 

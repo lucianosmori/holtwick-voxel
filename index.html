@@ -308,6 +308,32 @@
       .hud-quest-complete { color: #8fd47a; }
       .hud-quest-in_progress { color: #ffd88a; }
 
+      /* Volume slider row (P6.8). Interactive — re-enables pointer-events
+         since the parent #hud sets pointer-events: none. */
+      #hud-volume-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px dashed rgba(255, 255, 255, 0.25);
+        pointer-events: auto;
+        font-size: 11px;
+        color: #b8c0d4;
+      }
+      #hud-volume-label {
+        flex-shrink: 0;
+        color: #b8c0d4;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      #hud-volume {
+        flex: 1;
+        height: 4px;
+        accent-color: #ffc850;
+        cursor: pointer;
+      }
+
       /* Inventory modal (P6.4) — 4×3 grid of slots, toggled by `I` key. */
       #inventory-backdrop {
         display: none;
@@ -454,6 +480,10 @@
       <hr id="hud-divider" />
       <div id="hud-quest-count">Quests (0)</div>
       <div id="hud-quest-list"></div>
+      <div id="hud-volume-row">
+        <label for="hud-volume" id="hud-volume-label">Vol</label>
+        <input id="hud-volume" type="range" min="0" max="100" value="50" />
+      </div>
     </div>
 
     <div id="pickup-toast"></div>

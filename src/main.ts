@@ -26,6 +26,13 @@ import {
   loadSave,
   scheduleSave,
 } from "./game/save";
+import {
+  getMasterVolume,
+  setMasterVolume,
+  startAmbient,
+  updateAmbient,
+} from "./audio/ambient";
+import { maybeStep, resetFootstepCursor } from "./audio/footsteps";
 
 bindTitle();
 mountHud();
@@ -164,6 +171,32 @@ setupJoystick((v) => {
 bindDialog(() => scheduleSave());
 bindInventory();
 
+// P6.8 audio bootstrap. Browsers block AudioContext creation/resume until a
+// user gesture, so we listen on a few options and start on whichever fires
+// first (clicks count; pointerdown covers mouse + touch; keydown covers
+// keyboard-only navigation including Playwright's trusted key events).
+function bootAudio(): void {
+  startAmbient();
+  window.removeEventListener("pointerdown", bootAudio);
+  window.removeEventListener("keydown", bootAudio);
+  window.removeEventListener("touchstart", bootAudio);
+}
+window.addEventListener("pointerdown", bootAudio, { once: true });
+window.addEventListener("keydown", bootAudio, { once: true });
+window.addEventListener("touchstart", bootAudio, { once: true });
+
+const volSlider = document.getElementById("hud-volume") as HTMLInputElement | null;
+if (volSlider) {
+  volSlider.value = String(Math.round(getMasterVolume() * 100));
+  volSlider.addEventListener("input", () => {
+    setMasterVolume(parseInt(volSlider.value, 10) / 100);
+  });
+}
+
+// Seed the footstep cursor at the post-restore player position so the first
+// real movement doesn't trigger a stale-distance step.
+resetFootstepCursor(player.mesh.position.x, player.mesh.position.z);
+
 // P6.6 — subscribe collect-quest auto-completer to inventory transitions.
 // Bound after applySave so the restore's delta=0 emits do not double-process
 // quests that were already complete at save time.
@@ -224,6 +257,7 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).get(
     movePlayerTo: (x, z) => {
       player.mesh.position.x = x;
       player.mesh.position.z = z;
+      resetFootstepCursor(x, z);
     },
     getInventory,
     getItemCount,
@@ -285,6 +319,8 @@ function frame(now: number) {
   const t = (now - bootMs) / 1000;
   player.update(dt);
   dayNight.update(dt);
+  maybeStep(player.mesh.position.x, player.mesh.position.z);
+  updateAmbient(dt, dayNight.currentPhase);
   for (const w of walkers) w.update(dt, player.mesh.position);
   updateInteract(player.mesh, interactables);
   for (const it of worldItems) {
