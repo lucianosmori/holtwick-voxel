@@ -554,23 +554,7 @@ mechanics that need design decisions overnight.
   `iter-${ITER}-settings.png`, Esc closes. Build green at 517.49 kB
   (+2.42 kB vs iter 38's 515.07 kB).
 
-- [ ] **P7.5** Animated NPC idle barks (proximity-triggered). Files:
-  `src/ui/npcBark.ts` (new), called per-frame from `main.ts`.
-
-  **Behavior:** for each NPC within 8 voxels of the player, every
-  15-30 seconds (random per-NPC), pick a random string from the
-  NPC's `barks_idle[]` and render it as floating text above the NPC
-  for 4 seconds (CSS-positioned div with `transform: translate(...)`
-  mapping world→screen coords each frame; fade-in 200ms, hold 3500ms,
-  fade-out 300ms). Skip if player is in dialog with that NPC.
-
-  No LLM call — pure data from `barks_idle` in `npcSpawns.ts` /
-  `tavernCast.ts`.
-
-  **Done when:** Playwright walks player to within 8 voxels of an
-  NPC via `__voxelTest__.movePlayerTo()`, waits 30s, asserts at
-  least one `.npc-bark` element appeared in the DOM with non-empty
-  text content matching one of the NPC's idle barks.
+- [x] **P7.5** Animated NPC idle barks (proximity-triggered). DONE iter 40.
 
 - [ ] **P7.6** Quest 3 — "Visit the well" (talk-to type). Files:
   add to `src/data/quests.ts`, giver = well-keeper NPC from P7.2.

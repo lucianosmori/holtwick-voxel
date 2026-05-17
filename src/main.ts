@@ -8,7 +8,14 @@ import { BillboardNpc, NPC_Y } from "./entities/npc";
 import { NpcWalker } from "./entities/npcWalker";
 import { setupJoystick } from "./input/joystick";
 import { bindInteract, updateInteract, type InteractableNpc } from "./ui/interact";
-import { bindDialog, openDialog, closeDialog } from "./ui/dialog";
+import { bindDialog, openDialog, closeDialog, getCurrentDialogNpcId } from "./ui/dialog";
+import {
+  activeBarkCount,
+  forceBark,
+  setBarkTestMode,
+  updateNpcBarks,
+  type BarkNpc,
+} from "./ui/npcBark";
 import { bindInventory, openInventory, closeInventory, isInventoryOpen } from "./ui/inventory";
 import { NPC_SPAWNS } from "./data/npcSpawns";
 import type { NpcDef } from "./data/npc.schema";
@@ -41,7 +48,7 @@ import { bindSettings } from "./ui/settings";
 bindTitle();
 mountHud();
 
-const { scene, camera, renderer, sun, hemi } = bootstrapScene("#game");
+const { scene, camera, renderer, canvas: gameCanvas, sun, hemi } = bootstrapScene("#game");
 const dayNight = new DayNight(sun, hemi);
 
 const VILLAGE_SEED = 1337;
@@ -100,6 +107,15 @@ const interactables: InteractableTavernNpc[] = NPC_SPAWNS.map((spawn) => {
 
 // Keep references so we can re-face each NPC at the camera each frame.
 const billboards = interactables.map((n) => n.mesh);
+
+// P7.5 — same NPC list reshaped for the proximity-bark scheduler. Reused
+// reference per frame so we don't reallocate the array; updateNpcBarks
+// reads `def.barks_idle` for the random pick.
+const barkNpcs: BarkNpc[] = interactables.map((n) => ({
+  id: n.id,
+  def: n.def,
+  mesh: n.mesh,
+}));
 
 // World-item pickups (P6.3). Deterministic spawn from village seed; mesh
 // removed from scene on pickup. NPC cells passed in so spawns dodge them.
@@ -251,7 +267,11 @@ bindInteract((npc) => {
 
 // `?test=1` exposes a small hook for `scripts/validate-visual.mjs` to drive
 // the dialog without needing to position the player next to an NPC.
-if (typeof location !== "undefined" && new URLSearchParams(location.search).get("test") === "1") {
+const isTestRun = typeof location !== "undefined" && new URLSearchParams(location.search).get("test") === "1";
+// P7.5 — shorten bark interval to ~150-400ms under ?test=1 so the visual
+// gate can assert a bark appears without sitting on a 30s real-game timer.
+setBarkTestMode(isTestRun);
+if (isTestRun) {
   interface ItemWorldPos {
     item_id: string;
     x: number;
@@ -279,6 +299,9 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).get(
     getLanternIntensities: () => Array<{ label: string; intensity: number }>;
     getNpcPosition: (id: string) => { x: number; z: number } | null;
     getNpcCount: () => number;
+    forceBark: (npcId: string) => boolean;
+    getBarkCount: () => number;
+    getBarkTexts: () => string[];
   }
   const hook: VoxelTestHook = {
     openDialog: (npcId?: string) => {
@@ -333,6 +356,15 @@ if (typeof location !== "undefined" && new URLSearchParams(location.search).get(
       return n ? { x: n.mesh.position.x, z: n.mesh.position.z } : null;
     },
     getNpcCount: () => interactables.length,
+    forceBark: (id) => {
+      const n = barkNpcs.find((b) => b.id === id);
+      return n ? forceBark(n, performance.now()) : false;
+    },
+    getBarkCount: () => activeBarkCount(),
+    getBarkTexts: () =>
+      Array.from(document.querySelectorAll<HTMLDivElement>(".npc-bark")).map(
+        (el) => el.textContent ?? "",
+      ),
   };
   (window as unknown as { __voxelTest__?: VoxelTestHook }).__voxelTest__ = hook;
 }
@@ -418,6 +450,14 @@ function frame(now: number) {
   checkPickups();
   updateCamera();
   faceBillboards();
+  updateNpcBarks({
+    npcs: barkNpcs,
+    playerPos: player.mesh.position,
+    camera,
+    canvas: gameCanvas,
+    dialogNpcId: getCurrentDialogNpcId(),
+    now,
+  });
   renderer.render(scene, camera);
 
   fpsWindow[fpsWindowIdx] = dt;

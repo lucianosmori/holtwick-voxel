@@ -105,6 +105,11 @@ export function isDialogOpen(): boolean {
   return $("dialog-backdrop").classList.contains("show");
 }
 
+export function getCurrentDialogNpcId(): string | null {
+  if (!isDialogOpen() || !currentNpc) return null;
+  return currentNpc.id;
+}
+
 async function handleSend(): Promise<void> {
   if (!currentNpc || streaming) return;
   const input = $("chat-input") as HTMLInputElement;

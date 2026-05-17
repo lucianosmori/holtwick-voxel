@@ -880,6 +880,76 @@ try {
     failed = true;
   }
 
+  // P7.5 NPC idle barks: walk player within 8 voxels of Edda's spawn, force
+  // a bark via the test hook (the natural scheduler is shortened to ~150-
+  // 400ms under ?test=1 but explicit force keeps the gate deterministic),
+  // assert a .npc-bark element appears with text matching one of Edda's
+  // barks_idle entries.
+  try {
+    const eddaPos = await page.evaluate(() =>
+      (window).__voxelTest__.getNpcPosition("edda"),
+    );
+    if (!eddaPos) throw new Error("edda position unavailable");
+    // Stand 1 voxel south of Edda (well within the 8-voxel proximity ring).
+    await page.evaluate(
+      ({ x, z }) => (window).__voxelTest__.movePlayerTo(x, z + 1),
+      eddaPos,
+    );
+    await wait(120);
+    const forced = await page.evaluate(() =>
+      (window).__voxelTest__.forceBark("edda"),
+    );
+    if (!forced) throw new Error("forceBark('edda') returned false");
+    await page.waitForFunction(
+      () => document.querySelectorAll(".npc-bark").length > 0,
+      { timeout: 3000, polling: 50 },
+    );
+    const barkInfo = await page.evaluate(() => {
+      const layer = document.querySelector("#npc-bark-layer");
+      const barks = Array.from(document.querySelectorAll(".npc-bark"));
+      return {
+        layerPresent: !!layer,
+        barkCount: barks.length,
+        texts: barks.map((b) => (b.textContent ?? "").trim()),
+      };
+    });
+    if (!barkInfo.layerPresent) throw new Error("#npc-bark-layer missing from DOM");
+    if (barkInfo.barkCount < 1) {
+      throw new Error(`expected >=1 .npc-bark element, got ${barkInfo.barkCount}`);
+    }
+    const eddaBarks = await page.evaluate(() => {
+      const npcs = ["edda"];
+      return npcs.map(() => {
+        return [
+          "Welcome to the Holtwick tavern, traveler.",
+          "Stew's hot and the ale's cold — what'll it be?",
+          "The hearth never sleeps in my house.",
+          "Mind your boots, those planks are freshly cut.",
+          "Lost, are you? Plaza's south, road's east.",
+          "Drink up. The night is long in these hills.",
+        ];
+      })[0];
+    });
+    const text = barkInfo.texts[0];
+    if (!text || text.length === 0) {
+      throw new Error("first .npc-bark element has empty text");
+    }
+    if (!eddaBarks.includes(text)) {
+      throw new Error(
+        `bark text "${text}" not in Edda's barks_idle: ${JSON.stringify(eddaBarks)}`,
+      );
+    }
+    const barkShot = `artifacts/screenshots/iter-${ITER}-bark.png`;
+    await page.screenshot({ path: barkShot, fullPage: true });
+    console.log(`[validate:visual] bark screenshot -> ${barkShot}`);
+    console.log(
+      `[validate:visual] P7.5 NPC barks OK (.npc-bark x${barkInfo.barkCount}, text="${text}")`,
+    );
+  } catch (err) {
+    console.error("[validate:visual] NPC bark assert failed:", err?.message || err);
+    failed = true;
+  }
+
   if (errors.length) {
     console.error("[validate:visual] runtime errors:");
     for (const e of errors) console.error(`  ${e}`);
