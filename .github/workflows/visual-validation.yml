@@ -19,10 +19,15 @@ permissions:
   contents: read
 
 concurrency:
-  # Cancel older runs for the same branch if a newer push arrives — ralph
-  # iters land back-to-back, no point validating a stale commit.
+  # NOT cancel-in-progress. With cancel-in-progress=true (the original
+  # setting), a manual `git push` during ralph's `gh run watch <runId>`
+  # would cancel ralph's CI run, the watch would exit non-zero, and the
+  # loop would halt mid-burn. Public repo = unlimited Actions minutes,
+  # so running every commit's CI to completion is the safer default.
+  # Bit ralph 2026-05-17 09:42 EDT when a plan-only push cancelled iter
+  # 35 P6.12 README's CI.
   group: visual-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   validate:
