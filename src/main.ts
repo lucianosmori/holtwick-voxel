@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { bootstrapScene, CAMERA_OFFSET } from "./render/scene";
 import { buildVillage, computeItemSpawns, VILLAGE_DEPTH, VILLAGE_WIDTH, type ItemSpawn } from "./world/village";
 import { buildVoxelMesh } from "./render/voxelMesh";
+import { buildFoliageMesh, computeFoliage } from "./world/foliage";
 import { Player, PLAYER_HALF } from "./entities/player";
 import { BillboardNpc, NPC_Y } from "./entities/npc";
 import { NpcWalker } from "./entities/npcWalker";
@@ -127,6 +128,22 @@ for (let i = 0; i < itemSpawns.length; i++) {
   worldItems.push(item);
   scene.add(item.mesh);
 }
+
+// P6.9 foliage: deterministic on (villageSeed + 7331) so trees don't shift
+// when item or NPC layouts change. Placement dodges roads, plaza, NPC spawns,
+// and item spawns so the playable village stays uncluttered. Foliage mesh
+// uses the same gridOffset as the voxel mesh so tree cells align with floor
+// cells one-to-one.
+const FOLIAGE_SEED = (VILLAGE_SEED + 7331) >>> 0;
+const trees = computeFoliage(
+  FOLIAGE_SEED,
+  world,
+  NPC_SPAWNS.map((s) => ({ cellX: s.cellX, cellZ: s.cellZ })),
+  itemSpawns.map((s) => ({ cellX: s.cellX, cellZ: s.cellZ })),
+);
+const foliageMesh = buildFoliageMesh(trees);
+foliageMesh.position.copy(gridOffset);
+scene.add(foliageMesh);
 
 const PICKUP_DIST_SQ = (PICKUP_RADIUS + PLAYER_HALF) * (PICKUP_RADIUS + PLAYER_HALF);
 
@@ -339,4 +356,6 @@ window.addEventListener("keydown", (e) => {
 });
 
 const spawnedItemCount = worldItems.reduce((n, it) => n + (it ? 1 : 0), 0);
-console.log(`boot ok — Holtwick Voxel, ${interactables.length} NPCs, ${spawnedItemCount} items spawned`);
+console.log(
+  `boot ok — Holtwick Voxel, ${interactables.length} NPCs, ${spawnedItemCount} items, ${trees.length} trees spawned`,
+);

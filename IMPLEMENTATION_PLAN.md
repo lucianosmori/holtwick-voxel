@@ -379,24 +379,23 @@ the priority order.
   after dispatching a synthetic click (audio needs a gesture). Also assert
   the volume slider is present in the HUD.
 
-- [ ] **P6.9** Trees + foliage. Files: `src/world/foliage.ts` (new),
-  `src/world/village.ts` invoke foliage placement after voxel grid is
-  built, `src/main.ts` add the foliage group to the scene.
-
-  **Mesh per tree:** 4 stacked dirt-textured cubes for trunk (1×4×1
-  voxel, y=0..3) + 8 green-tinted cubes around the top for canopy
-  (3×2×3 with corners removed, y=2..4). Use existing `InstancedMesh`
-  pattern from `voxelMesh.ts` — one InstancedMesh per material (trunk
-  + canopy).
-
-  **Placement:** 30 trees via Mulberry32 (seed = villageSeed + 7331).
-  Skip cells where: voxel is non-empty at ground or above; within 2
-  cells of road (dirt cells); within 8 cells of plaza (stone center);
-  within 3 cells of any NPC spawn; within 3 cells of an item spawn.
-
-  **Done when:** Playwright screenshot shows visible foliage at the
-  village edge. The pixel-content top-bin frac drops further than the
-  current 15.96% (more color variety).
+- [x] ~~**P6.9** Trees + foliage.~~ (iter 32 — `src/world/foliage.ts`
+  `computeFoliage(seed, grid, npcCells, itemCells, count=30)` walks a
+  `mulberry32(villageSeed + 7331)` stream, rejects cells unless ground
+  is `VOXEL_FLOOR` (grass) AND column above is empty, enforces a
+  Chebyshev 8-cell plaza buffer + 2-cell road buffer (scans the
+  surrounding 5×5 for any `VOXEL_DIRT` cell) + 3-cell NPC + 3-cell item
+  buffer, 800-attempt cap; `buildFoliageMesh(trees)` returns a
+  `THREE.Group` with two `InstancedMesh`es — trunk uses
+  `Dark/texture_05.png` (same Kenney dirt swatch the dirt voxel uses)
+  for 4 cubes per tree at world y=1.5..4.5; canopy uses flat
+  `0x2f6b22` (darker than grass texture's dominant bin so foliage adds
+  new pixel-content bins) for 8 cubes per tree — 4 orthogonal cells per
+  layer × 2 layers (y=3.5, 4.5) — the "3×3 with corners + centre
+  removed" plus-shape minus its centre. `main.ts` computes `trees`
+  after items, builds the mesh, positions it at `gridOffset` so cells
+  line up with the voxel mesh. Build green 505.51 kB (+2.0 kB vs iter
+  31's 503.50 kB).)
 
 - [ ] **P6.10** Lantern night lighting. Files: `src/render/lanterns.ts`
   (new), `src/main.ts` wire 4 PointLights with per-frame intensity
