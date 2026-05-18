@@ -56,7 +56,7 @@ import { buildIndoorCandles } from "./render/indoorLights";
 bindTitle();
 mountHud();
 
-const { scene, camera, renderer, canvas: gameCanvas, sun, hemi, sky } = bootstrapScene("#game");
+const { scene, camera, renderer, composer, canvas: gameCanvas, sun, hemi, sky, updateFog } = bootstrapScene("#game");
 const dayNight = new DayNight(sun, hemi);
 
 // P9.5 — stars on the night sky. nightAlpha = 1 while phase ∈ [0.7, 0.95]
@@ -605,6 +605,8 @@ function frame(now: number) {
   updateLanterns(lanterns, dayNight.currentPhase);
   updateLampPosts(lampPosts, dayNight.currentPhase);
   sky.setNightAlpha(nightAlphaForPhase(dayNight.currentPhase));
+  // hermes/visual-pass #2: track fog with sun phase
+  updateFog(dayNight.currentPhase);
   maybeStep(player.mesh.position.x, player.mesh.position.z);
   updateAmbient(dt, dayNight.currentPhase);
   for (const w of walkers) w.update(dt, player.mesh.position);
@@ -627,7 +629,7 @@ function frame(now: number) {
     dialogNpcId: getCurrentDialogNpcId(),
     now,
   });
-  renderer.render(scene, camera);
+  composer.render();
 
   fpsWindow[fpsWindowIdx] = dt;
   fpsWindowIdx = (fpsWindowIdx + 1) % FPS_WINDOW;
