@@ -110,6 +110,7 @@ const interactables: InteractableTavernNpc[] = NPC_SPAWNS.map((spawn) => {
     ),
     background: spawn.background,
     foreground: spawn.foreground,
+    def: spawn.def, // hermes/visual-pass #1: enable procedural pixel-art sprite
   });
   scene.add(billboard.mesh);
   if (spawn.path && spawn.path.length >= 2) {
