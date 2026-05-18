@@ -52,11 +52,12 @@ import { bindSettings } from "./ui/settings";
 import { buildLampPosts, buildTavernSign, updateLampPosts } from "./world/decorations";
 import { buildHearthLight } from "./world/tavernInterior";
 import { buildIndoorCandles } from "./render/indoorLights";
+import { buildEmissives, updateEmissives } from "./render/emissives";
 
 bindTitle();
 mountHud();
 
-const { scene, camera, renderer, canvas: gameCanvas, sun, hemi, sky } = bootstrapScene("#game");
+const { scene, camera, renderer, composer, canvas: gameCanvas, sun, hemi, sky, updateFog } = bootstrapScene("#game");
 const dayNight = new DayNight(sun, hemi);
 
 // P9.5 — stars on the night sky. nightAlpha = 1 while phase ∈ [0.7, 0.95]
@@ -110,6 +111,7 @@ const interactables: InteractableTavernNpc[] = NPC_SPAWNS.map((spawn) => {
     ),
     background: spawn.background,
     foreground: spawn.foreground,
+    def: spawn.def, // hermes/visual-pass #1: enable procedural pixel-art sprite
   });
   scene.add(billboard.mesh);
   if (spawn.path && spawn.path.length >= 2) {
@@ -251,6 +253,13 @@ scene.add(hearthLight);
 // interior stays readable; complements the hearth set up just above.
 const indoorCandles = buildIndoorCandles(gridOffset);
 for (const c of indoorCandles) scene.add(c.light);
+
+// hermes/visual-pass #3: emissive glow cubes + tavern window emissives.
+// Visible emissive meshes that bloom under UnrealBloomPass.  Phase-ramped
+// so they only show at night; the actual illumination is still handled by
+// the lanterns' and lamp posts' PointLights.
+const emissives = buildEmissives(gridOffset);
+for (const e of emissives) scene.add(e.mesh);
 
 // P8.4 chimney smoke + water bob. Smoke base = tavern roof centre in world
 // coords ((32, 5, 17) in grid) lifted onto worldMesh's gridOffset; emitter
@@ -603,7 +612,11 @@ function frame(now: number) {
   dayNight.update(dt);
   updateLanterns(lanterns, dayNight.currentPhase);
   updateLampPosts(lampPosts, dayNight.currentPhase);
+  // hermes/visual-pass #3: emissive glow cubes + tavern windows
+  updateEmissives(emissives, dayNight.currentPhase);
   sky.setNightAlpha(nightAlphaForPhase(dayNight.currentPhase));
+  // hermes/visual-pass #2: track fog with sun phase
+  updateFog(dayNight.currentPhase);
   maybeStep(player.mesh.position.x, player.mesh.position.z);
   updateAmbient(dt, dayNight.currentPhase);
   for (const w of walkers) w.update(dt, player.mesh.position);
@@ -626,7 +639,7 @@ function frame(now: number) {
     dialogNpcId: getCurrentDialogNpcId(),
     now,
   });
-  renderer.render(scene, camera);
+  composer.render();
 
   fpsWindow[fpsWindowIdx] = dt;
   fpsWindowIdx = (fpsWindowIdx + 1) % FPS_WINDOW;

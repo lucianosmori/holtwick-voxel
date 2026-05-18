@@ -1,5 +1,8 @@
 import * as THREE from "three";
 
+import type { NpcDef } from "../data/npc.schema";
+import { makeProceduralNpcTexture } from "../render/proceduralSprite";
+
 export const NPC_WIDTH = 1;
 export const NPC_HEIGHT = 1.5;
 export const NPC_Y = 1 + NPC_HEIGHT / 2;
@@ -44,6 +47,12 @@ export interface BillboardNpcOptions {
   position: THREE.Vector3;
   background?: string;
   foreground?: string;
+  /**
+   * Optional NpcDef. When supplied, the billboard renders a procedural
+   * pixel-art sprite derived deterministically from the def's id+role
+   * instead of the flat-rectangle placeholder texture.
+   */
+  def?: NpcDef;
 }
 
 export class BillboardNpc {
@@ -52,15 +61,20 @@ export class BillboardNpc {
   private readonly lookTarget = new THREE.Vector3();
 
   constructor(options: BillboardNpcOptions) {
-    this.texture = makePlaceholderNpcTexture({
-      label: options.label,
-      background: options.background,
-      foreground: options.foreground,
-    });
+    if (options.def) {
+      this.texture = makeProceduralNpcTexture(options.def).texture;
+    } else {
+      this.texture = makePlaceholderNpcTexture({
+        label: options.label,
+        background: options.background,
+        foreground: options.foreground,
+      });
+    }
     const geometry = new THREE.PlaneGeometry(NPC_WIDTH, NPC_HEIGHT);
     const material = new THREE.MeshBasicMaterial({
       map: this.texture,
       transparent: true,
+      alphaTest: 0.5,
       side: THREE.DoubleSide,
     });
     this.mesh = new THREE.Mesh(geometry, material);
