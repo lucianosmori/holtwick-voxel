@@ -63,7 +63,7 @@ function archetypeFor(role: string): SpriteArchetype {
   return "tunic";
 }
 
-function paletteFor(def: NpcDef): { palette: SpritePalette; archetype: SpriteArchetype } {
+export function paletteFor(def: NpcDef): { palette: SpritePalette; archetype: SpriteArchetype } {
   const h1 = hash(def.id);
   const h2 = hash(def.id + "::" + def.role);
   const archetype = archetypeFor(def.role);
