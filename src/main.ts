@@ -609,6 +609,7 @@ function frame(now: number) {
   last = now;
   const t = (now - bootMs) / 1000;
   player.update(dt);
+  player.updateAnimation(dt);
   dayNight.update(dt);
   updateLanterns(lanterns, dayNight.currentPhase);
   updateLampPosts(lampPosts, dayNight.currentPhase);

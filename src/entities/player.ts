@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { VOXEL_EMPTY, VOXEL_WALL, type VoxelGrid } from "../world/voxel";
+import { buildCharacterMesh, type CharacterMesh } from "../render/characterMesh";
 
 export const PLAYER_SIZE = 0.6;
 export const PLAYER_HALF = PLAYER_SIZE / 2;
@@ -18,7 +19,13 @@ export interface PlayerInput {
 }
 
 export class Player {
-  readonly mesh: THREE.Mesh;
+  // Group root holding the multi-part character. Movement / collision code
+  // treats `mesh.position` as the player's center (foot + PLAYER_HALF), so
+  // the character group is offset internally so its feet anchor at y=0.
+  readonly mesh: THREE.Group;
+  private readonly character: CharacterMesh;
+  private prevX: number = 0;
+  private prevZ: number = 0;
   readonly input: PlayerInput = {
     forward: false,
     back: false,
@@ -36,13 +43,43 @@ export class Player {
   constructor(grid: VoxelGrid, gridOffset: THREE.Vector3, color: number = 0xd97757) {
     this.grid = grid;
     this.gridOffset = gridOffset.clone();
-    const geom = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_SIZE, PLAYER_SIZE);
-    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
-    this.mesh = new THREE.Mesh(geom, mat);
+    // Player palette uses the legacy "color" param (Claude orange) as body
+    // primary so save-restore and screenshots stay consistent.
+    const hex = `#${color.toString(16).padStart(6, "0")}`;
+    this.character = buildCharacterMesh({
+      skin: "#f4c8a8",
+      hair: "#3d2418",
+      body: hex,
+      bodyAccent: "#3a2a1a",
+      trim: "#d4a544",
+      eyes: "#1a1a1a",
+    });
+    this.mesh = new THREE.Group();
     this.mesh.name = "player";
+    // Character is built with feet at y=0; player.mesh.position uses center,
+    // so shift the character down by PLAYER_HALF to align feet with the
+    // bottom of the collision box.
+    this.character.group.position.y = -PLAYER_HALF;
+    this.mesh.add(this.character.group);
     this.mesh.position.set(0, PLAYER_Y, 0);
-    this.mesh.castShadow = true;
-    this.mesh.receiveShadow = true;
+    this.prevX = 0;
+    this.prevZ = 0;
+  }
+
+  // Per-frame visual update — call from main RAF loop after move(dt).
+  updateAnimation(dt: number): void {
+    const pos = this.mesh.position;
+    const dx = pos.x - this.prevX;
+    const dz = pos.z - this.prevZ;
+    const moving = (dx * dx + dz * dz) > 1e-6;
+    if (moving) {
+      // Face direction of travel (yaw only).
+      const yaw = Math.atan2(dx, dz);
+      this.character.group.rotation.y = yaw + Math.PI; // character faces -z by default
+    }
+    this.character.animate(dt, moving);
+    this.prevX = pos.x;
+    this.prevZ = pos.z;
   }
 
   attachKeyboard(target: Window = window): void {
