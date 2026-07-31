@@ -73,10 +73,13 @@
         #joystick, #interact-btn { display: block; }
       }
 
-      /* Hint overlay (shown when an NPC is in range) */
+      /* Hint overlay (shown when an NPC is in range). Bottom-centre, not the
+         original top-centre: the player sits in the lower-middle of the frame
+         under the follow-camera, so a prompt anchored to the top edge was the
+         furthest point on screen from where the eye already is, and got missed. */
       #hint {
         position: fixed;
-        top: 16px;
+        bottom: 28px;
         left: 50%;
         transform: translateX(-50%);
         padding: 8px 16px;
@@ -90,6 +93,11 @@
         z-index: 5;
       }
       #hint.show { opacity: 1; }
+      /* On touch devices the bottom strip belongs to the joystick (bottom:24,
+         130 tall) and the TALK button, so the prompt rides above both. */
+      @media (pointer: coarse) {
+        #hint { bottom: 170px; }
+      }
 
       /* Dialog modal */
       #dialog-backdrop {
@@ -630,10 +638,13 @@
       }
 
       /* P8.2 toast notification stack — bottom-center queue, max 3 visible
-         at a time, additional pushes wait their turn in src/ui/toast.ts. */
+         at a time, additional pushes wait their turn in src/ui/toast.ts.
+         Raised from bottom:32 when the interact prompt took over the bottom
+         centre — transient notifications stack upward from above it rather
+         than landing on top of the thing telling you which key to press. */
       #toast-container {
         position: fixed;
-        bottom: 32px;
+        bottom: 96px;
         left: 50%;
         transform: translateX(-50%);
         display: flex;

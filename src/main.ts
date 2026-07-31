@@ -45,6 +45,7 @@ import {
 } from "./audio/ambient";
 import { maybeStep, resetFootstepCursor } from "./audio/footsteps";
 import { buildLanterns, updateLanterns } from "./render/lanterns";
+import { buildPlayerGlow, updatePlayerGlow } from "./render/playerGlow";
 import { SmokeEmitter } from "./render/particles";
 import { WaterAnimator } from "./world/waterAnim";
 import { mountMinimap } from "./ui/minimap";
@@ -232,6 +233,12 @@ const lanterns = buildLanterns(gridOffset);
 for (const l of lanterns) scene.add(l.light);
 updateLanterns(lanterns, dayNight.currentPhase);
 
+// A fifth, mobile lantern carried by the player, on the same dusk ramp — the
+// four above are fixed to the plaza, so without it the player walking the
+// outskirts at midnight was a silhouette in the dark.
+const playerGlow = buildPlayerGlow(player.mesh);
+updatePlayerGlow(playerGlow, dayNight.currentPhase);
+
 // P8.5 decorations: tavern sign hung over the doorway + 4 lamp posts along
 // the N/S main road. Lamp lights follow the same dusk-onset curve as the
 // lanterns and are driven from the RAF loop below.
@@ -390,6 +397,7 @@ if (isTestRun) {
     getDayNightPhase: () => number;
     setDayNightPhase: (p: number) => void;
     getLanternIntensities: () => Array<{ label: string; intensity: number }>;
+    getPlayerGlowIntensity: () => number;
     getNpcPosition: (id: string) => { x: number; z: number } | null;
     getNpcCount: () => number;
     forceBark: (npcId: string) => boolean;
@@ -464,11 +472,13 @@ if (isTestRun) {
       dayNight.setPhase(p);
       updateLanterns(lanterns, dayNight.currentPhase);
       updateLampPosts(lampPosts, dayNight.currentPhase);
+      updatePlayerGlow(playerGlow, dayNight.currentPhase);
       sky.setNightAlpha(nightAlphaForPhase(dayNight.currentPhase));
       setTimeOfDayLabel(dayNight.currentPhase);
     },
     getLanternIntensities: () =>
       lanterns.map((l) => ({ label: l.label, intensity: l.light.intensity })),
+    getPlayerGlowIntensity: () => playerGlow.intensity,
     getLampIntensities: () =>
       lampPosts.map((l) => ({ label: l.label, intensity: l.light.intensity })),
     hasTavernSign: () => tavernSign.parent === scene,
@@ -612,6 +622,7 @@ function frame(now: number) {
   dayNight.update(dt);
   updateLanterns(lanterns, dayNight.currentPhase);
   updateLampPosts(lampPosts, dayNight.currentPhase);
+  updatePlayerGlow(playerGlow, dayNight.currentPhase);
   // hermes/visual-pass #3: emissive glow cubes + tavern windows
   updateEmissives(emissives, dayNight.currentPhase);
   sky.setNightAlpha(nightAlphaForPhase(dayNight.currentPhase));
