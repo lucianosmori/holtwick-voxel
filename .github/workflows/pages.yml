@@ -1,3 +1,8 @@
+# Secondary mirror build — primary host is voxel.heck.games (Cloudflare Pages,
+# deployed via ../../scripts/deploy-voxel.sh from the heck umbrella).
+# The repo moved owner lucianosmori -> heck-games, so this Pages site now
+# targets heck-games.github.io/holtwick-voxel/ and needs Pages re-enabled in
+# the heck-games org settings before it will deploy again.
 name: Deploy to GitHub Pages
 
 on:

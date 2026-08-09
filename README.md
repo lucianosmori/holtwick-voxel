@@ -2,7 +2,7 @@
 
 3D voxel rogue-like set in the Holtwick Tavern world. Three.js renderer, cloud-LLM NPCs (Cloudflare Worker -> Groq Llama-3.1-8B), procedural voxel village with day/night, quests, inventory, save/load, and a tavern at the center.
 
-**Play it →** https://lucianosmori.github.io/holtwick-voxel/
+**Play it →** https://voxel.heck.games
 
 Companion to [holtwick-tavern](https://github.com/lucianosmori/holtwick-tavern) (2D web chat with the same 31 NPCs).
 
