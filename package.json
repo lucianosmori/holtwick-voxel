@@ -2,7 +2,7 @@
   "name": "holtwick-voxel",
   "private": true,
   "version": "0.0.1",
-  "description": "Voxel rogue-like 3D version of Holtwick Tavern — Three.js + cloud LLM NPCs (Cloudflare/Groq) + procedural village",
+  "description": "Voxel rogue-like 3D version of Holtwick Tavern — Three.js + in-browser NPCs (Cloudflare/Groq) + procedural village. Live: https://voxel.heck.games",
   "homepage": "https://voxel.heck.games",
   "repository": {
     "type": "git",

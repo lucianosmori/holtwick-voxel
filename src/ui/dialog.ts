@@ -2,7 +2,7 @@
 // the greeting. On Send, streams a reply from the Cloudflare/Groq proxy
 // (Llama-3.1-8B-Instant) into the chat bubble. If the proxy is unreachable
 // or returns nothing, falls back to a random scripted bark so the dialog
-// still produces a reply.
+// still produces a reply labeled "(chat is offline)".
 
 import type { NpcDef } from "../data/npc.schema";
 import { streamProxyReply, warmupProxy } from "../chat/proxy";
@@ -145,7 +145,7 @@ async function handleSend(): Promise<void> {
 
     if (proxyFailed || proxyAcc.length === 0) {
       const fb = pickRandom(npc.barks_idle) ?? "...";
-      bubble.textContent = `${fb} (offline)`;
+      bubble.textContent = `${fb} (chat is offline)`;
       scrollToBottom();
     }
   } finally {
