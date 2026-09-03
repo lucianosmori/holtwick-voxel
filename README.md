@@ -4,7 +4,7 @@
 
 **Play it →** https://voxel.heck.games
 
-Companion to [holtwick-tavern](https://github.com/lucianosmori/holtwick-tavern) (2D web chat with the same 31 NPCs).
+Companion to [holtwick-tavern](https://github.com/lucianosmori/holtwick-tavern) (2D web chat; same Holtwick world). Source: [heck-games/holtwick-voxel](https://github.com/heck-games/holtwick-voxel).
 
 ## Status
 
@@ -147,7 +147,7 @@ The `validate:visual` and `test:dialog` gates also run in CI on every push (`.gi
 - **World:** 64×4×64 voxel grid (`Uint8Array`), procedural village generator (deterministic seed), procedural cube-sky background with night starfield, 30 instanced trees, 20 decorative props, 3 walkable hills, 4 buildings (tavern + blacksmith + well + 2 stalls) plus dressed tavern interior (bar, hearth, tables, stools)
 - **Lighting:** `HemisphereLight` + `DirectionalLight` orbiting on a 2-minute (settings-adjustable) day/night cycle, PCF soft shadows, 4 lanterns + 4 lamp posts ramped by phase, hearth + 2 indoor candles constantly lit
 - **NPCs:** `PlaneGeometry` billboards facing the camera (Y-axis only); 12 personas in `src/data/tavernCast.ts` (innkeeper, bard, watch, herbalist, smith, apprentice, stablehand, merchant, well-keeper, baker, messenger, miner). 3 walk waypoints with proximity-halt; rest emit idle barks when the player is close.
-- **Chat:** Cloudflare Worker ([holtwick-llm-proxy](https://github.com/lucianosmori/holtwick-llm-proxy)) -> Groq `llama-3.1-8b-instant`. Cross-browser, no client-side model download, $0/month on free tiers. Per-NPC history capped at 12 turns, scripted-bark offline fallback.
+- **Chat:** Cloudflare Worker ([holtwick-llm-proxy](https://github.com/lucianosmori/holtwick-llm-proxy), live at `holtwick-llm.lucianosmori.workers.dev`) -> Groq `llama-3.1-8b-instant`. Cross-browser, no client-side model download, $0/month on free tiers. Per-NPC history capped at 12 turns. If the worker or Groq is down, the dialog uses a scripted bark and labels the reply `(chat is offline)` — exploration, quests, and save/load keep working.
 - **Audio:** Web Audio API — pink-noise day chain (lowpass + rumble + chirps), AM-modulated cricket night chain, crossfade on phase boundaries, footsteps via 50 ms white-noise bursts. Master gain persists to `localStorage`. No asset downloads.
 - **Persistence:** `localStorage` SaveV1 — player XZ + dayNight phase + quests + inventory + gold + picked-item indices. Debounced 500 ms + 30 s heartbeat + on-dialog-close.
 - **HUD:** quest log + gold counter (top-right), minimap with player/NPC/item/lantern dots (top-left), volume slider, settings gear (top-right), FPS overlay (bottom-right, toggleable).

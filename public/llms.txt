@@ -1,0 +1,30 @@
+# Holtwick Voxel
+
+> A browser 3D voxel rogue-like set around Holtwick Tavern. Wander a procedural village, talk to in-browser NPCs, take quests, and watch a day/night cycle.
+
+Holtwick Voxel is an original heck.games browser game. It is the 3D companion to Holtwick Tavern: same world and regulars, rendered as a first-person-follow Three.js voxel village you play in the tab. There is no install.
+
+- Play: https://voxel.heck.games/
+- Source: https://github.com/heck-games/holtwick-voxel
+- Studio: https://heck.games/
+- Companion 2D chat: https://github.com/lucianosmori/holtwick-tavern
+
+## What it is
+
+Players walk a seeded 64×4×64 voxel village (tavern, forge, well, market stalls, hills, trees). Twelve friendly NPCs live in the plaza and tavern. Talking to them (E / on-screen TALK) opens a chat modal. Replies stream from a Cloudflare Worker that calls Groq; if the worker or Groq key is down, each NPC falls back to a scripted bark so exploration, quests, inventory, and save/load still work.
+
+Live roster: Edda the Innkeeper, Finn the Bard, Aldric of the Village Watch, Mireille the Herbalist, Old Boran the Blacksmith, Wren the Stablehand, Cassia the Merchant, Karsten the Apprentice Smith, Hilda the Well-Keeper, Petra the Baker, Ronan the Messenger, Dorin the Miner.
+
+Quests include talk-to, collect, deliver, walk-to, and talk-to-all. Inventory and gold persist in localStorage. Day/night is about two minutes by default (adjustable).
+
+## Stack (accurate)
+
+- Renderer: Three.js r160, Kenney CC0 voxel textures
+- Chat: Cloudflare Worker (holtwick-llm.lucianosmori.workers.dev) → Groq `llama-3.1-8b-instant`, with scripted-bark fallback
+- Host: https://voxel.heck.games/ (Cloudflare Pages; GitHub Pages is a secondary mirror)
+- License: MIT
+
+## Optional
+
+- Sitemap: https://voxel.heck.games/sitemap.xml
+- Share image: https://voxel.heck.games/og.jpg
